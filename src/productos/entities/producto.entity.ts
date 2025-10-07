@@ -1,0 +1,109 @@
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { CategoriaProducto } from '../enums/categoria-producto.enum';
+
+/**
+ * Entidad que representa un producto canjeable en la base de datos.
+ */
+@Entity()
+export class Producto {
+  /**
+   * Identificador único del producto (UUID).
+   * @ejemplo "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+   */
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  /**
+   * Título o nombre del producto. Debe ser único.
+   * @ejemplo "Camisa Polo Oficial Davivienda"
+   */
+  @Column('text', {
+    unique: true,
+  })
+  title: string;
+
+  /**
+   * Costo del producto en puntos de lealtad.
+   * @ejemplo 1500
+   */
+  @Column('float', {
+    default: 0,
+  })
+  points: number;
+
+  /**
+   * Descripción detallada del producto.
+   * @ejemplo "Camisa polo de alta calidad con el logo bordado."
+   */
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  description: string;
+
+  /**
+   * Slug del producto para URLs amigables. Debe ser único.
+   * @ejemplo "camisa-polo-oficial-davivienda"
+   */
+  @Column('text', {
+    unique: true,
+  })
+  slug: string;
+
+  /**
+   * Cantidad de unidades disponibles en inventario.
+   * @ejemplo 250
+   */
+  @Column('int', {
+    default: 0,
+  })
+  stock: number;
+
+  /**
+   * Tallas disponibles para el producto (aplica principalmente a ropa).
+   * @ejemplo ["S", "M", "L"]
+   */
+  @Column('text', {
+    array: true,
+    default: [],
+  })
+  sizes: string[];
+
+  /**
+   * Categoría a la que pertenece el producto.
+   * @ejemplo "ropa"
+   */
+  @Column('text')
+  category: CategoriaProducto;
+
+  /**
+   * Arreglo de URLs de las imágenes del producto.
+   * @ejemplo ["https://ejemplo.com/image1.jpg"]
+   */
+  @Column('text', {
+    array: true,
+    default: [],
+  })
+  images: string[];
+
+  /**
+   * Hook que se ejecuta antes de insertar el producto en la base de datos.
+   * Genera un slug a partir del título si no se proporciona uno.
+   */
+  @BeforeInsert()
+  checkSlugInsert() {
+    if (!this.slug) {
+      this.slug = this.title;
+    }
+
+    this.slug = this.slug
+      .toLowerCase()
+      .replaceAll(' ', '_')
+      .replaceAll("'", '');
+  }
+}
