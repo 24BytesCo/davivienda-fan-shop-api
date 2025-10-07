@@ -1,39 +1,80 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
 import { ProductosService } from './productos.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 @Controller('productos')
 export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
-  // Crear un nuevo producto
+  /**
+   * Crea un nuevo producto.
+   * @param {CreateProductoDto} createProductoDto - DTO para la creación.
+   */
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   async create(@Body() createProductoDto: CreateProductoDto) {
-    return await this.productosService.create(createProductoDto);
+    return this.productosService.create(createProductoDto);
   }
 
-  // Obtener todos los productos
+  /**
+   * Obtiene una lista de todos los productos.
+   */
   @Get()
-  findAll() {
-    return this.productosService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.productosService.findAll(paginationDto);
   }
 
-  // Obtener un producto por su ID
+  /**
+   * Obtiene un producto activo por su ID.
+   * @param {string} id - UUID del producto.
+   */
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productosService.findOne(+id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productosService.findOne(id);
   }
 
-  // Actualizar un producto por su ID
+  /**
+   * Obtiene un producto por ID (incluyendo eliminados).
+   * @param {string} id - UUID del producto.
+   */
+  @Get('deleted/:id')
+  async findOneWithDeleted(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productosService.findOneWithDeleted(id);
+  }
+
+  /**
+   * Actualiza un producto por su ID.
+   * @param {string} id - UUID del producto.
+   * @param {UpdateProductoDto} updateProductoDto - DTO con datos a actualizar.
+   */
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductoDto: UpdateProductoDto) {
-    return this.productosService.update(+id, updateProductoDto);
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateProductoDto: UpdateProductoDto,
+  ) {
+    return this.productosService.update(id, updateProductoDto);
   }
 
-  // Eliminar un producto por su ID
+  /**
+   * Realiza una eliminación lógica de un producto por su ID.
+   * @param {string} id - UUID del producto.
+   */
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productosService.remove(+id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.productosService.remove(id);
   }
 }

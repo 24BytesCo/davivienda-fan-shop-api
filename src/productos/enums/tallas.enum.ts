@@ -7,4 +7,6 @@ export enum TallasValidas {
   M = 'M',
   L = 'L',
   XL = 'XL',
+  AJUSTABLE = 'AJUSTABLE',
+  UNICA = 'UNICA',
 }

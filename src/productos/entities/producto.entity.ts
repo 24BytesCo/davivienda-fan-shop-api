@@ -1,6 +1,8 @@
 import {
   BeforeInsert,
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -90,6 +92,20 @@ export class Producto {
     default: [],
   })
   images: string[];
+
+  /**
+   * Columna para manejar la fecha de creación del registro.
+   * Se asigna automáticamente al crear un producto.
+   */
+  @CreateDateColumn()
+  createdAt: Date;
+
+  /**
+   * Columna para manejar el borrado lógico (soft delete).
+   * Almacena la fecha y hora en que se eliminó el registro.
+   */
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   /**
    * Hook que se ejecuta antes de insertar el producto en la base de datos.
