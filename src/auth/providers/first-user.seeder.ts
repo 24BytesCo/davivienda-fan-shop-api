@@ -25,7 +25,7 @@ export class FirstUserSeeder implements OnModuleInit {
     const email = process.env.ADMIN_EMAIL;
     const password = process.env.ADMIN_PASSWORD;
     const fullName = process.env.ADMIN_FULLNAME;
-    const roleEnv = process.env.ADMIN_ROLE;
+    const roleEnv = process.env.ADMIN_ROLE || process.env.ADMIN_ROLES;
 
     if (!email || !password || !fullName) {
       // Requiere variables mínimas para proceder
