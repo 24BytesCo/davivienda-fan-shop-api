@@ -14,7 +14,7 @@ import { ProductoImagen } from './';
 /**
  * Entidad que representa un producto canjeable en la base de datos.
  */
-@Entity()
+@Entity('productos')
 export class Producto {
   /**
    * Identificador único del producto (UUID).
