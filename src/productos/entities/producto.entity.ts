@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { CategoriaProducto } from '../enums/categoria-producto.enum';
 import { ProductoImagen } from './';
+import { TallasValidas } from '../enums/tallas.enum';
 
 /**
  * Entidad que representa un producto canjeable en la base de datos.
@@ -77,7 +78,7 @@ export class Producto {
     array: true,
     default: [],
   })
-  sizes: string[];
+  sizes: TallasValidas[];
 
   /**
    * Categoría a la que pertenece el producto.

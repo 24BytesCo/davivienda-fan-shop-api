@@ -70,9 +70,7 @@ export class ProductosService {
       }
       // Re-lanzamos el error para que lo maneje el AllExceptionsFilter
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error al crear el producto. La operación fue revertida.',
-      );
+      throw error;
     }
   }
 
