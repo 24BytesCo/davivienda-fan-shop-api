@@ -1,10 +1,6 @@
 import {
   BadRequestException,
-  ConflictException,
-  HttpException,
-  HttpStatus,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
-import { Producto } from './entities/producto.entity';
+import { Producto, ProductoImagen } from './entities';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid';
 
@@ -27,6 +23,8 @@ export class ProductosService {
   constructor(
     @InjectRepository(Producto)
     private readonly productoRepository: Repository<Producto>,
+    @InjectRepository(ProductoImagen)
+    private readonly productoImagenRepository: Repository<ProductoImagen>,
   ) {}
 
   /**
@@ -35,8 +33,20 @@ export class ProductosService {
    * @returns {Promise<string>} El ID del producto creado.
    */
   async create(createProductoDto: CreateProductoDto): Promise<string> {
-    const producto = this.productoRepository.create(createProductoDto);
+    const { images = [], ...detallesProducto } = createProductoDto;
+
+    // Creamos el producto con las imágenes asociadas
+    const producto = this.productoRepository.create({
+      ...detallesProducto,
+      images: images.map((image) =>
+        this.productoImagenRepository.create({ url: image }),
+      ),
+    });
+
+    console.log('producto', producto);
+
     await this.productoRepository.save(producto);
+
     return producto.id;
   }
 
@@ -49,58 +59,68 @@ export class ProductosService {
     return await this.productoRepository.find({
       take: limit,
       skip: offset,
+      relations: { images: true },
     });
   }
 
   /**
-   * Obtiene un producto por su termino (solo activos).
-   * @param {string} termino - UUtermino del producto.
+   * Obtiene un producto por su término (UUID, slug o título).
+   * @param {string} termino - UUID, slug o título del producto.
    * @returns {Promise<Producto>} El producto encontrado.
    */
   async findOne(termino: string): Promise<Producto> {
-    //termino es UUID ?
-    if (termino && isUUID(termino)) {
-      const producto = await this.productoRepository.findOneBy({ id: termino });
-      if (!producto)
-        throw new NotFoundException(`Producto con ID ${termino} no encontrado`);
-      return producto;
-    }
     if (!termino) {
       throw new BadRequestException(
-        `El término de búsqueda no puede estar vacío`,
+        'El término de búsqueda no puede estar vacío',
       );
     }
 
-    // definiendo query builder, se colocan mayusculas para evitar problemas de case sensitive
-    const queryBuilder = this.productoRepository.createQueryBuilder();
+    // Un solo QueryBuilder para todas las búsquedas
+    const queryBuilder = this.productoRepository.createQueryBuilder('producto');
 
-    // buscando por title o slug
-    queryBuilder.where('UPPER(title) = :title OR UPPER(slug) = :slug', {
-      title: termino.toUpperCase(),
-      slug: termino.toUpperCase(),
-    });
+    // Hacemos el JOIN con las imágenes
+    queryBuilder.leftJoinAndSelect('producto.images', 'prodImages');
 
-    // ejecutando la consulta
+    if (isUUID(termino)) {
+      // Búsqueda por UUID
+      queryBuilder.where('producto.id = :id', { id: termino });
+    } else {
+      // Búsqueda por slug o título (insensible a mayúsculas)
+      queryBuilder.where(
+        'UPPER(producto.title) = :termino OR UPPER(producto.slug) = :termino',
+        {
+          termino: termino.toUpperCase(),
+        },
+      );
+    }
+
+    // Ejecutamos la consulta
     const producto = await queryBuilder.getOne();
+
     if (!producto)
       throw new NotFoundException(
-        `Producto con termino ${termino} no encontrado`,
+        `Producto con término "${termino}" no encontrado`,
       );
 
     return producto;
   }
 
   async update(id: string, updateProductDto: UpdateProductoDto) {
-    const product = await this.productoRepository.preload({
-      id: id,
-      ...updateProductDto,
-    });
+    // // Map images (string[]) to ProductoImagen[] if images are present
+    // let updateData = { id, ...updateProductDto };
+    // if (updateProductDto.images) {
+    //   updateData = {
+    //     ...updateData,
+    //     images: updateProductDto.images.map((url) => ({ url })),
+    //   };
+    // }
+    // const product = await this.productoRepository.preload(updateData);
 
-    if (!product)
-      throw new NotFoundException(`Product with id: ${id} not found`);
+    // if (!product)
+    //   throw new NotFoundException(`Product with id: ${id} not found`);
 
-    await this.productoRepository.save(product);
-    return product;
+    // await this.productoRepository.save(product);
+    return 'Actualización de productos no implementada aún';
   }
 
   /**
@@ -124,10 +144,12 @@ export class ProductosService {
    * @returns {Promise<Producto>} El producto encontrado.
    */
   async findOneWithDeleted(id: string): Promise<Producto> {
-    const producto = await this.productoRepository.findOne({
-      where: { id },
-      withDeleted: true, // Incluye registros con soft-delete
-    });
+    const producto = await this.productoRepository
+      .createQueryBuilder('producto')
+      .leftJoinAndSelect('producto.images', 'Images')
+      .where('producto.id = :id', { id })
+      .withDeleted()
+      .getOne();
 
     if (!producto)
       throw new NotFoundException(

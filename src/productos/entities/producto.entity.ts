@@ -1,12 +1,15 @@
 import {
   BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CategoriaProducto } from '../enums/categoria-producto.enum';
+import { ProductoImagen } from './';
 
 /**
  * Entidad que representa un producto canjeable en la base de datos.
@@ -84,14 +87,13 @@ export class Producto {
   category: CategoriaProducto;
 
   /**
-   * Arreglo de URLs de las imágenes del producto.
-   * @ejemplo ["https://ejemplo.com/image1.jpg"]
+   * Lista de imágenes asociadas al producto.
+   * Relación uno a muchos con la entidad ProductoImagen.
    */
-  @Column('text', {
-    array: true,
-    default: [],
+  @OneToMany(() => ProductoImagen, (productoImagen) => productoImagen.producto, {
+    cascade: true
   })
-  images: string[];
+  images: ProductoImagen[];
 
   /**
    * Columna para manejar la fecha de creación del registro.
@@ -117,6 +119,14 @@ export class Producto {
       this.slug = this.title;
     }
 
+    this.slug = this.slug
+      .toLowerCase()
+      .replaceAll(' ', '_')
+      .replaceAll("'", '');
+  }
+
+  @BeforeUpdate()
+  checkSlugUpdate() {
     this.slug = this.slug
       .toLowerCase()
       .replaceAll(' ', '_')
