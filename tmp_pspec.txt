@@ -1,0 +1,175 @@
+/**
+ * Pruebas unitarias para `ProductosService`.
+ *
+ * Objetivo:
+ * - Validar listados, bÃƒÂºsquedas (UUID y slug/tÃƒÂ­tulo), y lectura incluyendo eliminados.
+ * - Validar creaciÃƒÂ³n con subida/eliminaciÃƒÂ³n de imÃƒÂ¡genes y borrado lÃƒÂ³gico.
+ *
+ * Notas:
+ * - Se mockean los repositorios de TypeORM, `FilesService` y el `QueryBuilder`.
+ */
+import { Test, TestingModule } from '@nestjs/testing';
+import { ProductosService } from './productos.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Producto, ProductoImagen } from './entities';
+import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { FilesService } from 'src/files/files.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+
+type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>> & {
+  create?: jest.Mock;
+  createQueryBuilder?: jest.Mock;
+};
+
+/**
+ * Crea un QueryBuilder simulado que devuelve un producto o `null`.
+ */
+const makeQueryBuilder = (product?: any) => {
+  const qb: any = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    withDeleted: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(product ?? null),
+  };
+  return qb;
+};
+
+/**
+ * Genera un `Producto` de ejemplo con valores por defecto.
+ */
+const sampleProduct = (): Producto => ({
+  id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  title: 'Producto',
+  points: 10,
+  description: 'desc',
+  slug: 'producto',
+  stock: 1,
+  sizes: [],
+  category: 'ropa' as any,
+  images: [],
+  createdAt: new Date(),
+  deletedAt: null,
+} as any);
+
+describe('ProductosService', () => {
+  let service: ProductosService;
+  let productoRepo: MockRepo<Producto>;
+  let imagenRepo: MockRepo<ProductoImagen>;
+  let files: { uploadFiles: jest.Mock; deleteFiles: jest.Mock };
+
+  beforeEach(async () => {
+    productoRepo = {
+      find: jest.fn(),
+      findOneBy: jest.fn(),
+      save: jest.fn(),
+      create: jest.fn(),
+      createQueryBuilder: jest.fn(),
+      preload: jest.fn(),
+      softDelete: jest.fn(),
+    } as any;
+
+    imagenRepo = {
+      create: jest.fn(),
+      findBy: jest.fn(),
+    } as any;
+
+    files = {
+      uploadFiles: jest.fn(),
+      deleteFiles: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ProductosService,
+        { provide: getRepositoryToken(Producto), useValue: productoRepo },
+        { provide: getRepositoryToken(ProductoImagen), useValue: imagenRepo },
+        { provide: DataSource, useValue: { createQueryRunner: jest.fn() } },
+        { provide: FilesService, useValue: files },
+      ],
+    }).compile();
+
+    service = module.get(ProductosService);
+  });
+
+  it('findAll retorna listado paginado', async () => {
+    const items = [sampleProduct()];
+    productoRepo.find!.mockResolvedValue(items);
+    const res = await service.findAll({ limit: 5, offset: 0 } as any);
+    expect(res).toBe(items);
+    expect(productoRepo.find).toHaveBeenCalledWith({
+      take: 5,
+      skip: 0,
+      relations: { images: true },
+    });
+  });
+
+  it('findOne lanza error si tÃƒÂ©rmino vacÃƒÂ­o', async () => {
+    await expect(service.findOne('' as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('findOne por UUID retorna producto', async () => {
+    const qb = makeQueryBuilder(sampleProduct());
+    (productoRepo.createQueryBuilder as jest.Mock).mockReturnValue(qb);
+    const res = await service.findOne('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+    expect(qb.where).toHaveBeenCalled();
+    expect(res).toBeTruthy();
+  });
+
+  it('findOne por tÃƒÂ­tulo/slug retorna producto', async () => {
+    const qb = makeQueryBuilder(sampleProduct());
+    (productoRepo.createQueryBuilder as jest.Mock).mockReturnValue(qb);
+    const res = await service.findOne('producto');
+    expect(qb.where).toHaveBeenCalled();
+    expect(res).toBeTruthy();
+  });
+
+  it('create sube imÃƒÂ¡genes y guarda producto', async () => {
+    files.uploadFiles.mockResolvedValue(['https://u/1.png']);
+    const created = sampleProduct();
+    created.images = [{ id: 1, url: 'https://u/1.png' } as any];
+    productoRepo.create!.mockReturnValue(created);
+    productoRepo.save!.mockResolvedValue(created);
+    imagenRepo.create!.mockImplementation(({ url }) => ({ url }));
+
+    const res = await service.create({ title: 'x' } as any, [{ originalname: 'a.png' }] as any);
+    expect(files.uploadFiles).toHaveBeenCalled();
+    expect(productoRepo.save).toHaveBeenCalled();
+    expect(res.images.length).toBe(1);
+  });
+
+  it('create llama deleteFiles si falla persistencia luego de subir', async () => {
+    files.uploadFiles.mockResolvedValue(['https://u/1.png', 'https://u/2.png']);
+    imagenRepo.create!.mockImplementation(({ url }) => ({ url }));
+    productoRepo.create!.mockReturnValue(sampleProduct());
+    productoRepo.save!.mockRejectedValue(new Error('db error'));
+
+    await expect(
+      service.create({ title: 'x' } as any, [{ originalname: 'a.png' }] as any),
+    ).rejects.toThrow('db error');
+    expect(files.deleteFiles).toHaveBeenCalledWith(['https://u/1.png', 'https://u/2.png']);
+  });
+
+  it('remove elimina lÃƒÂ³gicamente y retorna id', async () => {
+    const prod = sampleProduct();
+    productoRepo.findOneBy!.mockResolvedValue(prod);
+    productoRepo.softDelete!.mockResolvedValue(undefined);
+    const id = await service.remove(prod.id);
+    expect(id).toBe(prod.id);
+    expect(productoRepo.softDelete).toHaveBeenCalledWith(prod.id);
+  });
+
+  it('remove lanza NotFound si no existe', async () => {
+    productoRepo.findOneBy!.mockResolvedValue(null);
+    await expect(service.remove('uuid')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('findOneWithDeleted incluye borrados', async () => {
+    const qb = makeQueryBuilder(sampleProduct());
+    (productoRepo.createQueryBuilder as jest.Mock).mockReturnValue(qb);
+    const res = await service.findOneWithDeleted('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+    expect(qb.withDeleted).toHaveBeenCalled();
+    expect(res).toBeTruthy();
+  });
+});
+

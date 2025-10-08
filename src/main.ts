@@ -50,6 +50,9 @@ async function main() {
   //Aplicando el filtro de excepciones global
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  //Configurar cors
+  app.enableCors();
+
   // Fin configuración Swagger
 
   await app.listen(process.env.PORT ?? 3000);

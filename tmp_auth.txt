@@ -1,3 +1,4 @@
+
 import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -22,14 +23,10 @@ export class AuthService {
 
   /**
    * Crea un usuario aplicando reglas de rol y hash de contraseña.
-   * - Normaliza el correo a minúsculas y sin espacios.
-   * - Valida duplicados.
-   * - Determina el rol final según el rol del creador y el solicitado.
-   * - Hashea la contraseña antes de persistir.
    */
   async create(createUserDto: CreateUserDto) {
     const { email, password, fullName } = createUserDto;
-
+    
     const existing = await this.usersRepository.findOne({ where: { email: email.toLowerCase().trim() } });
     if (existing) {
       throw new ConflictException('El correo ya está registrado');
@@ -40,7 +37,7 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
-    // Crea y guarda el usuario
+    // Crea y guardar el usuario
     const user = this.usersRepository.create({
       email: email.toLowerCase().trim(),
       password: hashed,
@@ -54,31 +51,30 @@ export class AuthService {
 
   /**
    * Determina el rol final a asignar según el rol del creador.
-   * Reglas:
-   * - Público (sin creatorRole): siempre USER.
-   * - ADMIN: puede asignar cualquier rol.
-   * - EDITOR: solo puede asignar USER.
-   * - Otros: solo USER.
    */
   private resolveDesiredRole(dto: CreateUserDto): RolesUsuario {
-    const creator = dto.creatorRole;
+    const creator = dto.creatorRole; // si no está logueado, viene undefined
     const requested = dto.role ?? RolesUsuario.USER;
 
     if (!creator) {
+      // Registro público: siempre USER
       return RolesUsuario.USER;
     }
 
     if (creator === RolesUsuario.ADMIN) {
+      // Admin puede crear cualquier rol
       return requested;
     }
 
     if (creator === RolesUsuario.EDITOR) {
+      // Editor solo puede crear usuarios
       if (requested !== RolesUsuario.USER) {
         throw new ForbiddenException('Un editor solo puede crear usuarios');
       }
       return RolesUsuario.USER;
     }
 
+    // Otros roles (usuario) solo pueden crear USER
     if (requested !== RolesUsuario.USER) {
       throw new ForbiddenException('No tienes permisos para crear ese rol');
     }

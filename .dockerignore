@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.gitignore
+README.md
+coverage
+postgres
+*.log
+*.tgz
+.DS_Store
+docker-compose.yaml
+firebase-credentials.template.json
+

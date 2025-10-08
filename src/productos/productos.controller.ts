@@ -98,6 +98,7 @@ export class ProductosController {
     },
     examples: {
       ejemplo: {
+        summary: 'Respuesta exitosa con listado paginado',
         value: {
           statusCode: 200,
           ok: true,
@@ -154,6 +155,7 @@ export class ProductosController {
     },
     examples: {
       ejemplo: {
+        summary: 'Respuesta exitosa para un producto',
         value: {
           statusCode: 200,
           ok: true,
@@ -208,6 +210,7 @@ export class ProductosController {
     },
     examples: {
       ejemplo: {
+        summary: 'Respuesta exitosa para un producto (incluido eliminado)',
         value: {
           statusCode: 200,
           ok: true,
