@@ -23,7 +23,7 @@ import { StandardResponseDto } from 'src/common/dtos/standard-response.dto';
 import { Producto } from './entities';
 
 /**
- * Controlador de endpoints para gestiÃ³n de productos.
+ * Controlador de endpoints para gestión de productos.
  */
 @ApiTags('Productos')
 @ApiExtraModels(StandardResponseDto, Producto, UpdateProductoDto)
@@ -32,20 +32,17 @@ export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   /**
-   * Crea un nuevo producto con imÃ¡genes.
-   * La peticiÃ³n debe ser de tipo multipart/form-data.
+   * Crea un nuevo producto con imágenes.
+   * La petición debe ser de tipo multipart/form-data.
    * @param {CreateProductoDto} createProductoDto - DTO con los datos del producto.
    * @param {Express.Multer.File[]} files - Arreglo de archivos de imagen.
    */
-  @Get()
+  @Post()
   @UseInterceptors(FilesInterceptor('images')) // 'images' es el `name` del campo para los archivos
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear producto con imÃ¡genes' })
+  @ApiOperation({ summary: 'Crear producto con imágenes' })
   @ApiConsumes('multipart/form-data')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FilesInterceptor('images'))
   @ApiBody({
-    description: 'Actualizar campos y opcionalmente subir imágenes nuevas',
     schema: {
       type: 'object',
       properties: {
@@ -58,8 +55,32 @@ export class ProductosController {
         category: { type: 'string' },
         sizes: { type: 'array', items: { type: 'string' } },
       },
+      required: ['title', 'points', 'stock', 'category'],
     },
   })
+  @ApiCreatedResponse({
+    description: 'Producto creado',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(StandardResponseDto) },
+        { properties: { data: { $ref: getSchemaPath(Producto) } } },
+      ],
+    },
+  })
+  create(
+    @Body() createProductoDto: CreateProductoDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.productosService.create(createProductoDto, files);
+  }
+
+  /**
+   * Obtiene una lista de todos los productos.
+   */
+  @Get()
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Cantidad de resultados a devolver', example: 10, minimum: 1 })
+  @ApiQuery({ name: 'offset', required: false, type: Number, description: 'Elementos a omitir', example: 0, minimum: 0 })
+  @ApiOperation({ summary: 'Listar productos' })
   @ApiOkResponse({
     description: 'Listado paginado',
     schema: {
@@ -81,13 +102,13 @@ export class ProductosController {
         value: {
           statusCode: 200,
           ok: true,
-          message: 'OperaciÃ³n exitosa',
+          message: 'Operación exitosa',
           data: [
             {
               id: '1049907c-856f-4960-942b-00ecc5aabb73',
               title: 'Camisa Polo Oficial Davivienda',
               points: 1500,
-              description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasiÃ³n.',
+              description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasión.',
               slug: 'camisa_polo_oficial_davivienda',
               stock: 50,
               sizes: ['S', 'M', 'L', 'XL'],
@@ -123,8 +144,8 @@ export class ProductosController {
    * @param {string} id - UUID del producto.
    */
   @Get(':termino')
-  @ApiParam({ name: 'termino', description: 'UUID, slug o tÃ­tulo en mayÃºsculas/minÃºsculas', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
-  @ApiOperation({ summary: 'Obtener producto por tÃ©rmino (id/slug/tÃ­tulo)' })
+  @ApiParam({ name: 'termino', description: 'UUID, slug o título en mayúsculas/minúsculas', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
+  @ApiOperation({ summary: 'Obtener producto por término (id/slug/título)' })
   @ApiOkResponse({
     schema: {
       allOf: [
@@ -138,12 +159,12 @@ export class ProductosController {
         value: {
           statusCode: 200,
           ok: true,
-          message: 'OperaciÃ³n exitosa',
+          message: 'Operación exitosa',
           data: {
             id: '1049907c-856f-4960-942b-00ecc5aabb73',
             title: 'Camisa Polo Oficial Davivienda',
             points: 1500,
-            description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasiÃ³n.',
+            description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasión.',
             slug: 'camisa_polo_oficial_davivienda',
             stock: 50,
             sizes: ['S', 'M', 'L', 'XL'],
@@ -193,12 +214,12 @@ export class ProductosController {
         value: {
           statusCode: 200,
           ok: true,
-          message: 'OperaciÃ³n exitosa',
+          message: 'Operación exitosa',
           data: {
             id: '1049907c-856f-4960-942b-00ecc5aabb73',
             title: 'Camisa Polo Oficial Davivienda',
             points: 1500,
-            description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasiÃ³n.',
+            description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasión.',
             slug: 'camisa_polo_oficial_davivienda',
             stock: 50,
             sizes: ['S', 'M', 'L', 'XL'],
@@ -236,21 +257,34 @@ export class ProductosController {
   @Patch(':id')
   @ApiParam({ name: 'id', description: 'UUID del producto', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   @ApiOperation({ summary: 'Actualizar un producto' })
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FilesInterceptor('images'))
   @ApiBody({
-    description: 'Actualizar campos y opcionalmente subir imágenes nuevas',
-    schema: {
-      type: 'object',
-      properties: {
-        images: { type: 'array', items: { type: 'string', format: 'binary' } },
-        title: { type: 'string' },
-        points: { type: 'number' },
-        description: { type: 'string' },
-        slug: { type: 'string' },
-        stock: { type: 'integer' },
-        category: { type: 'string' },
-        sizes: { type: 'array', items: { type: 'string' } },
+    description: 'Campos actualizables del producto',
+    type: UpdateProductoDto,
+    examples: {
+      parcial: {
+        summary: 'Actualización parcial',
+        value: {
+          title: 'Camisa Polo Davivienda - Nueva edición',
+          points: 1800,
+          stock: 25,
+          sizes: ['M', 'L'],
+        },
+      },
+      completo: {
+        summary: 'Actualización completa',
+        value: {
+          title: 'Camisa Polo Oficial Davivienda',
+          points: 1500,
+          description: 'Edición 2025 con bordado premium',
+          slug: 'camisa-polo-oficial-davivienda',
+          stock: 50,
+          category: 'ropa',
+          sizes: ['S', 'M', 'L'],
+          images: [
+            'https://storage.googleapis.com/bucket/imagen1.png',
+            'https://storage.googleapis.com/bucket/imagen2.png',
+          ],
+        },
       },
     },
   })
@@ -264,20 +298,19 @@ export class ProductosController {
     },
   })
   update(
-    @Param('id', ParseUUIDPipe ) id: string,
-    @Body() updateProductDto: UpdateProductoDto,
-    @UploadedFiles() files: Express.Multer.File[],
+    @Param('id', ParseUUIDPipe ) id: string, 
+    @Body() updateProductDto: UpdateProductoDto
   ) {
-    return this.productosService.update(id, updateProductDto, files);
+    return this.productosService.update( id, updateProductDto );
   }
 
   /**
-   * Realiza una eliminaciÃ³n lÃ³gica de un producto por su ID.
+   * Realiza una eliminación lógica de un producto por su ID.
    * @param {string} id - UUID del producto.
    */
   @Delete(':id')
   @ApiParam({ name: 'id', description: 'UUID del producto', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
-  @ApiOperation({ summary: 'Eliminar lÃ³gicamente un producto' })
+  @ApiOperation({ summary: 'Eliminar lógicamente un producto' })
   @ApiOkResponse({
     description: 'ID del producto eliminado',
     schema: {
@@ -291,3 +324,4 @@ export class ProductosController {
     return await this.productosService.remove(id);
   }
 }
+
