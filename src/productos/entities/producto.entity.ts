@@ -11,6 +11,7 @@ import {
 import { CategoriaProducto } from '../enums/categoria-producto.enum';
 import { ProductoImagen } from './';
 import { TallasValidas } from '../enums/tallas.enum';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * Entidad que representa un producto canjeable en la base de datos.
@@ -21,6 +22,7 @@ export class Producto {
    * Identificador único del producto (UUID).
    * @ejemplo "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
    */
+  @ApiProperty({ format: 'uuid' })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -31,6 +33,7 @@ export class Producto {
   @Column('text', {
     unique: true,
   })
+  @ApiProperty({ example: 'Camisa Polo Oficial Davivienda' })
   title: string;
 
   /**
@@ -40,6 +43,7 @@ export class Producto {
   @Column('float', {
     default: 0,
   })
+  @ApiProperty({ example: 1500, type: Number })
   points: number;
 
   /**
@@ -50,6 +54,7 @@ export class Producto {
     type: 'text',
     nullable: true,
   })
+  @ApiPropertyOptional({ example: 'Camisa polo de alta calidad con el logo bordado.' })
   description: string;
 
   /**
@@ -59,6 +64,7 @@ export class Producto {
   @Column('text', {
     unique: true,
   })
+  @ApiProperty({ example: 'camisa-polo-oficial-davivienda' })
   slug: string;
 
   /**
@@ -68,6 +74,7 @@ export class Producto {
   @Column('int', {
     default: 0,
   })
+  @ApiProperty({ example: 250, type: Number })
   stock: number;
 
   /**
@@ -78,6 +85,7 @@ export class Producto {
     array: true,
     default: [],
   })
+  @ApiPropertyOptional({ enum: TallasValidas, isArray: true, example: ['S','M','L'] })
   sizes: TallasValidas[];
 
   /**
@@ -85,6 +93,7 @@ export class Producto {
    * @ejemplo "ropa"
    */
   @Column('text')
+  @ApiProperty({ enum: CategoriaProducto, example: CategoriaProducto.ROPA })
   category: CategoriaProducto;
 
   /**
@@ -94,6 +103,23 @@ export class Producto {
   @OneToMany(() => ProductoImagen, (productoImagen) => productoImagen.producto, {
     cascade: true
   })
+  @ApiProperty({
+    type: () => [ProductoImagen],
+    example: [
+      {
+        id: 1,
+        url: 'https://http2.mlstatic.com/D_NQ_NP_899787-MCO73577433249_122023-O.webp',
+        createdAt: '2025-10-08T09:12:22.340Z',
+        deletedAt: null,
+      },
+      {
+        id: 2,
+        url: 'https://http2.mlstatic.com/D_NQ_NP_673059-MCO73577317549_122023-O.webp',
+        createdAt: '2025-10-08T09:12:22.340Z',
+        deletedAt: null,
+      },
+    ],
+  })
   images: ProductoImagen[];
 
   /**
@@ -101,6 +127,7 @@ export class Producto {
    * Se asigna automáticamente al crear un producto.
    */
   @CreateDateColumn()
+  @ApiProperty({ type: String, example: '2025-01-01T12:00:00.000Z' })
   createdAt: Date;
 
   /**
@@ -108,6 +135,7 @@ export class Producto {
    * Almacena la fecha y hora en que se eliminó el registro.
    */
   @DeleteDateColumn()
+  @ApiPropertyOptional({ type: String, example: null })
   deletedAt: Date;
 
   /**
