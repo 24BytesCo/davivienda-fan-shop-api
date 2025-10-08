@@ -23,7 +23,7 @@ import { StandardResponseDto } from 'src/common/dtos/standard-response.dto';
 import { Producto } from './entities';
 
 /**
- * Controlador de endpoints para gestiÃ³n de productos.
+ * Controlador de endpoints para gestión de productos.
  */
 @ApiTags('Productos')
 @ApiExtraModels(StandardResponseDto, Producto, UpdateProductoDto)
@@ -32,20 +32,15 @@ export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   /**
-   * Crea un nuevo producto con imÃ¡genes.
-   * La peticiÃ³n debe ser de tipo multipart/form-data.
-   * @param {CreateProductoDto} createProductoDto - DTO con los datos del producto.
-   * @param {Express.Multer.File[]} files - Arreglo de archivos de imagen.
+   * Crear producto con imágenes (multipart/form-data).
    */
-  @Get()
-  @UseInterceptors(FilesInterceptor('images')) // 'images' es el `name` del campo para los archivos
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear producto con imÃ¡genes' })
-  @ApiConsumes('multipart/form-data')
-  @ApiConsumes('multipart/form-data')
+  @Post()
   @UseInterceptors(FilesInterceptor('images'))
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear producto con imágenes' })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Actualizar campos y opcionalmente subir imágenes nuevas',
+    description: 'Campos del producto y archivos de imagen',
     schema: {
       type: 'object',
       properties: {
@@ -58,60 +53,39 @@ export class ProductosController {
         category: { type: 'string' },
         sizes: { type: 'array', items: { type: 'string' } },
       },
+      required: ['title', 'points', 'stock', 'category'],
     },
   })
+  @ApiCreatedResponse({
+    description: 'Producto creado',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(StandardResponseDto) },
+        { properties: { data: { $ref: getSchemaPath(Producto) } } },
+      ],
+    },
+  })
+  create(
+    @Body() createProductoDto: CreateProductoDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.productosService.create(createProductoDto, files);
+  }
+
+  /**
+   * Listar productos (paginado).
+   */
+  @Get()
+  @ApiOperation({ summary: 'Listar productos' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
   @ApiOkResponse({
     description: 'Listado paginado',
     schema: {
       allOf: [
         { $ref: getSchemaPath(StandardResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(Producto) },
-            },
-          },
-        },
+        { properties: { data: { type: 'array', items: { $ref: getSchemaPath(Producto) } } } },
       ],
-    },
-    examples: {
-      ejemplo: {
-        summary: 'Respuesta exitosa con listado paginado',
-        value: {
-          statusCode: 200,
-          ok: true,
-          message: 'OperaciÃ³n exitosa',
-          data: [
-            {
-              id: '1049907c-856f-4960-942b-00ecc5aabb73',
-              title: 'Camisa Polo Oficial Davivienda',
-              points: 1500,
-              description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasiÃ³n.',
-              slug: 'camisa_polo_oficial_davivienda',
-              stock: 50,
-              sizes: ['S', 'M', 'L', 'XL'],
-              category: 'ropa',
-              images: [
-                {
-                  id: 1,
-                  url: 'https://http2.mlstatic.com/D_NQ_NP_899787-MCO73577433249_122023-O.webp',
-                  createdAt: '2025-10-08T09:12:22.340Z',
-                  deletedAt: null,
-                },
-                {
-                  id: 2,
-                  url: 'https://http2.mlstatic.com/D_NQ_NP_673059-MCO73577317549_122023-O.webp',
-                  createdAt: '2025-10-08T09:12:22.340Z',
-                  deletedAt: null,
-                },
-              ],
-              createdAt: '2025-10-08T09:12:22.340Z',
-              deletedAt: null,
-            },
-          ],
-        },
-      },
     },
   })
   async findAll(@Query() paginationDto: PaginationDto) {
@@ -120,61 +94,6 @@ export class ProductosController {
 
   /**
    * Obtiene un producto activo por su ID.
-   * @param {string} id - UUID del producto.
-   */
-  @Get(':termino')
-  @ApiParam({ name: 'termino', description: 'UUID, slug o tÃ­tulo en mayÃºsculas/minÃºsculas', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
-  @ApiOperation({ summary: 'Obtener producto por tÃ©rmino (id/slug/tÃ­tulo)' })
-  @ApiOkResponse({
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(StandardResponseDto) },
-        { properties: { data: { $ref: getSchemaPath(Producto) } } },
-      ],
-    },
-    examples: {
-      ejemplo: {
-        summary: 'Respuesta exitosa para un producto',
-        value: {
-          statusCode: 200,
-          ok: true,
-          message: 'OperaciÃ³n exitosa',
-          data: {
-            id: '1049907c-856f-4960-942b-00ecc5aabb73',
-            title: 'Camisa Polo Oficial Davivienda',
-            points: 1500,
-            description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasiÃ³n.',
-            slug: 'camisa_polo_oficial_davivienda',
-            stock: 50,
-            sizes: ['S', 'M', 'L', 'XL'],
-            category: 'ropa',
-            images: [
-              {
-                id: 1,
-                url: 'https://http2.mlstatic.com/D_NQ_NP_899787-MCO73577433249_122023-O.webp',
-                createdAt: '2025-10-08T09:12:22.340Z',
-                deletedAt: null,
-              },
-              {
-                id: 2,
-                url: 'https://http2.mlstatic.com/D_NQ_NP_673059-MCO73577317549_122023-O.webp',
-                createdAt: '2025-10-08T09:12:22.340Z',
-                deletedAt: null,
-              },
-            ],
-            createdAt: '2025-10-08T09:12:22.340Z',
-            deletedAt: null,
-          },
-        },
-      },
-    },
-  })
-  async findOne(@Param('termino') termino: string) {
-    return this.productosService.findOne(termino);
-  }
-
-  /**
-   * Obtiene un producto por ID (incluyendo eliminados).
    * @param {string} id - UUID del producto.
    */
   @Get('deleted/:id')
@@ -187,45 +106,27 @@ export class ProductosController {
         { properties: { data: { $ref: getSchemaPath(Producto) } } },
       ],
     },
-    examples: {
-      ejemplo: {
-        summary: 'Respuesta exitosa para un producto (incluido eliminado)',
-        value: {
-          statusCode: 200,
-          ok: true,
-          message: 'OperaciÃ³n exitosa',
-          data: {
-            id: '1049907c-856f-4960-942b-00ecc5aabb73',
-            title: 'Camisa Polo Oficial Davivienda',
-            points: 1500,
-            description: 'Camisa polo de alta calidad con el logo bordado, perfecta para cualquier ocasiÃ³n.',
-            slug: 'camisa_polo_oficial_davivienda',
-            stock: 50,
-            sizes: ['S', 'M', 'L', 'XL'],
-            category: 'ropa',
-            images: [
-              {
-                id: 1,
-                url: 'https://http2.mlstatic.com/D_NQ_NP_899787-MCO73577433249_122023-O.webp',
-                createdAt: '2025-10-08T09:12:22.340Z',
-                deletedAt: null,
-              },
-              {
-                id: 2,
-                url: 'https://http2.mlstatic.com/D_NQ_NP_673059-MCO73577317549_122023-O.webp',
-                createdAt: '2025-10-08T09:12:22.340Z',
-                deletedAt: null,
-              },
-            ],
-            createdAt: '2025-10-08T09:12:22.340Z',
-            deletedAt: null,
-          },
-        },
-      },
-    },
   })
   async findOneWithDeleted(@Param('id', ParseUUIDPipe) id: string) {
     return this.productosService.findOneWithDeleted(id);
+  }
+
+  /**
+   * Obtener producto por término (id/slug/título).
+   */
+  @Get(':termino')
+  @ApiParam({ name: 'termino', description: 'UUID, slug o título', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
+  @ApiOperation({ summary: 'Obtener producto por término' })
+  @ApiOkResponse({
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(StandardResponseDto) },
+        { properties: { data: { $ref: getSchemaPath(Producto) } } },
+      ],
+    },
+  })
+  async findOne(@Param('termino') termino: string) {
+    return this.productosService.findOne(termino);
   }
 
   /**
@@ -272,12 +173,11 @@ export class ProductosController {
   }
 
   /**
-   * Realiza una eliminaciÃ³n lÃ³gica de un producto por su ID.
-   * @param {string} id - UUID del producto.
+   * Eliminación lógica de un producto por ID.
    */
   @Delete(':id')
   @ApiParam({ name: 'id', description: 'UUID del producto', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
-  @ApiOperation({ summary: 'Eliminar lÃ³gicamente un producto' })
+  @ApiOperation({ summary: 'Eliminar lógicamente un producto' })
   @ApiOkResponse({
     description: 'ID del producto eliminado',
     schema: {
