@@ -42,9 +42,9 @@ export class ProductosController {
    * Obtiene un producto activo por su ID.
    * @param {string} id - UUID del producto.
    */
-  @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productosService.findOne(id);
+  @Get(':termino')
+  async findOne(@Param('termino') termino: string) {
+    return this.productosService.findOne(termino);
   }
 
   /**
@@ -62,11 +62,11 @@ export class ProductosController {
    * @param {UpdateProductoDto} updateProductoDto - DTO con datos a actualizar.
    */
   @Patch(':id')
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateProductoDto: UpdateProductoDto,
+  update(
+    @Param('id', ParseUUIDPipe ) id: string, 
+    @Body() updateProductDto: UpdateProductoDto
   ) {
-    return this.productosService.update(id, updateProductoDto);
+    return this.productosService.update( id, updateProductDto );
   }
 
   /**
