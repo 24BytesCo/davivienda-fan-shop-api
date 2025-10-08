@@ -18,6 +18,9 @@ import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { Auth, GetUser } from 'src/auth/decorators';
+import { ValidRoles } from 'src/auth/interfaces';
+import { User } from 'src/users/entities/user.entity';
 
 @Controller('productos')
 export class ProductosController {
@@ -30,13 +33,15 @@ export class ProductosController {
    * @param {Express.Multer.File[]} files - Arreglo de archivos de imagen.
    */
   @Post()
+  @Auth(ValidRoles.ADMIN, ValidRoles.SUPER_USER)
   @UseInterceptors(FilesInterceptor('images')) // 'images' es el `name` del campo para los archivos
   @HttpCode(HttpStatus.CREATED)
   create(
     @Body() createProductoDto: CreateProductoDto,
     @UploadedFiles() files: Express.Multer.File[],
+    @GetUser() user: User,
   ) {
-    return this.productosService.create(createProductoDto, files);
+    return this.productosService.create(createProductoDto, files, user);
   }
 
   /**
@@ -71,8 +76,9 @@ export class ProductosController {
    * @param {UpdateProductoDto} updateProductoDto - DTO con datos a actualizar.
    */
   @Patch(':id')
+  @Auth(ValidRoles.ADMIN, ValidRoles.SUPER_USER)
   update(
-    @Param('id', ParseUUIDPipe ) id: string, 
+    @Param('id', ParseUUIDPipe ) id: string,
     @Body() updateProductDto: UpdateProductoDto
   ) {
     return this.productosService.update( id, updateProductDto );
@@ -83,6 +89,7 @@ export class ProductosController {
    * @param {string} id - UUID del producto.
    */
   @Delete(':id')
+  @Auth(ValidRoles.ADMIN, ValidRoles.SUPER_USER)
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     return await this.productosService.remove(id);
   }

@@ -6,10 +6,12 @@ import {
   DeleteDateColumn,
   Entity,
   OneToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CategoriaProducto } from '../enums/categoria-producto.enum';
 import { ProductoImagen } from './';
+import { User } from 'src/users/entities/user.entity';
 
 /**
  * Entidad que representa un producto canjeable en la base de datos.
@@ -94,6 +96,15 @@ export class Producto {
     cascade: true
   })
   images: ProductoImagen[];
+
+  /**
+   * Usuario que creó o administra el producto.
+   */
+  @ManyToOne(() => User, (user) => user.productos, {
+    eager: true,
+    nullable: false,
+  })
+  owner: User;
 
   /**
    * Columna para manejar la fecha de creación del registro.

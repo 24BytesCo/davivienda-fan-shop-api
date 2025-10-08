@@ -13,6 +13,7 @@ import { Producto, ProductoImagen } from './entities';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid';
 import { FilesService } from 'src/files/files.service';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class ProductosService {
@@ -43,6 +44,7 @@ export class ProductosService {
   async create(
     createProductoDto: CreateProductoDto,
     files: Express.Multer.File[],
+    user: User,
   ): Promise<Producto> {
     let uploadedUrls: string[] = [];
     try {
@@ -53,6 +55,7 @@ export class ProductosService {
       const { ...detallesProducto } = createProductoDto;
       const producto = this.productoRepository.create({
         ...detallesProducto,
+        owner: user,
         images: uploadedUrls.map((url) =>
           this.productoImagenRepository.create({ url }),
         ),
@@ -85,7 +88,7 @@ export class ProductosService {
     return await this.productoRepository.find({
       take: limit,
       skip: offset,
-      relations: { images: true },
+      relations: { images: true, owner: true },
     });
   }
 
@@ -106,6 +109,7 @@ export class ProductosService {
 
     // Hacemos el JOIN con las imágenes
     queryBuilder.leftJoinAndSelect('producto.images', 'prodImages');
+    queryBuilder.leftJoinAndSelect('producto.owner', 'owner');
 
     if (isUUID(termino)) {
       // Búsqueda por UUID
@@ -214,6 +218,7 @@ export class ProductosService {
     const producto = await this.productoRepository
       .createQueryBuilder('producto')
       .leftJoinAndSelect('producto.images', 'Images')
+      .leftJoinAndSelect('producto.owner', 'Owner')
       .where('producto.id = :id', { id })
       .withDeleted()
       .getOne();
