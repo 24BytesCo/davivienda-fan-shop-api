@@ -19,6 +19,9 @@ import { UpdateProductoDto } from './dto/update-producto.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
+/**
+ * Controlador de endpoints para gestión de productos.
+ */
 @Controller('productos')
 export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}

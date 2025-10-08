@@ -7,7 +7,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { FirstUserSeeder } from './providers/first-user.seeder';
 
-// Módulo de autenticación: controladores, servicios y configuración JWT
+/**
+ * Módulo de autenticación: controladores, servicios y configuración JWT.
+ */
 @Module({
   controllers: [AuthController],
   providers: [AuthService, FirstUserSeeder],

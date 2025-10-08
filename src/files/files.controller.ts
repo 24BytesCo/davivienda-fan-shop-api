@@ -3,6 +3,9 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { DeleteFileDto } from './dtos/delete-file.dto';
 
+/**
+ * Controlador para carga y borrado de archivos.
+ */
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}

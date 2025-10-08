@@ -10,7 +10,9 @@ import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 
-// Lógica de negocio para registro y autenticación
+/**
+ * Servicio de autenticación: registro, validación y emisión de JWT.
+ */
 @Injectable()
 export class AuthService {
   constructor(
@@ -19,7 +21,9 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Crea un usuario aplicando reglas de rol y hash de contraseña
+  /**
+   * Crea un usuario aplicando reglas de rol y hash de contraseña.
+   */
   async create(createUserDto: CreateUserDto) {
     const { email, password, fullName } = createUserDto;
     
@@ -33,6 +37,7 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash(password, salt);
 
+    // Crea y guardar el usuario
     const user = this.usersRepository.create({
       email: email.toLowerCase().trim(),
       password: hashed,
@@ -44,7 +49,9 @@ export class AuthService {
     return this.sanitize(saved);
   }
 
-  // Determina el rol final a asignar según el rol del creador
+  /**
+   * Determina el rol final a asignar según el rol del creador.
+   */
   private resolveDesiredRole(dto: CreateUserDto): RolesUsuario {
     const creator = dto.creatorRole; // si no está logueado, viene undefined
     const requested = dto.role ?? RolesUsuario.USER;
@@ -74,13 +81,17 @@ export class AuthService {
     return RolesUsuario.USER;
   }
 
-  // Remueve datos sensibles del usuario
+  /**
+   * Remueve datos sensibles del usuario persistido.
+   */
   private sanitize(user: User) {
     const { password, ...rest } = user as any;
     return rest;
   }
 
-  // Valida credenciales y emite un JWT
+  /**
+   * Valida credenciales y emite un JWT.
+   */
   async login({ email, password }: LoginDto) {
     const user = await this.usersRepository.findOne({ where: { email: email.toLowerCase().trim() } });
     if (!user) {
