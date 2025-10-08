@@ -11,11 +11,12 @@ import {
 } from 'class-validator';
 import { CategoriaProducto } from '../enums/categoria-producto.enum';
 import { TallasValidas } from '../enums/tallas.enum';
+import { Type } from 'class-transformer';
 
 export class CreateProductoDto {
   /**
    * Nombre del producto.
-   * @ejemplo "Camisa Polo Davivienda"
+   * @example "Camisa Polo Davivienda"
    */
   @IsString()
   @MinLength(5)
@@ -24,8 +25,10 @@ export class CreateProductoDto {
 
   /**
    * Costo del producto en puntos de lealtad.
-   * @ejemplo 1500
+   * Se transforma de string a número automáticamente.
+   * @example 1500
    */
+  @Type(() => Number)
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
@@ -33,7 +36,7 @@ export class CreateProductoDto {
 
   /**
    * Descripción detallada del producto. Es opcional.
-   * @ejemplo "Camisa polo de alta calidad con el logo bordado."
+   * @example "Camisa polo de alta calidad con el logo bordado."
    */
   @IsString()
   @IsOptional()
@@ -41,7 +44,7 @@ export class CreateProductoDto {
 
   /**
    * Slug para la URL amigable del producto.
-   * @ejemplo "camisa-polo-davivienda"
+   * @example "camisa-polo-davivienda"
    */
   @IsString()
   @IsOptional()
@@ -49,8 +52,10 @@ export class CreateProductoDto {
 
   /**
    * Cantidad de producto en inventario.
-   * @ejemplo 10
+   * Se transforma de string a número automáticamente.
+   * @example 10
    */
+  @Type(() => Number)
   @IsInt()
   @IsPositive()
   @IsNotEmpty()
@@ -58,7 +63,7 @@ export class CreateProductoDto {
 
   /**
    * Categoría a la que pertenece el producto.
-   * @ejemplo "ropa"
+   * @example "ropa"
    */
   @IsIn(Object.values(CategoriaProducto))
   @IsNotEmpty()
@@ -66,7 +71,7 @@ export class CreateProductoDto {
 
   /**
    * Tallas disponibles (solo para la categoría 'ropa'). Es opcional.
-   * @ejemplo ["S", "M", "L"]
+   * @example ["S", "M", "L"]
    */
   @IsArray()
   @IsIn(Object.values(TallasValidas), { each: true })
@@ -75,7 +80,7 @@ export class CreateProductoDto {
 
   /**
    * Arreglo de URLs de las imágenes del producto.
-   * @ejemplo ["https://ejemplo.com/image1.jpg"]
+   * @example ["https://ejemplo.com/image1.jpg"]
    */
   @IsString({ each: true })
   @IsArray()

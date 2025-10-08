@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductosModule } from './productos/productos.module';
 import { CommonModule } from './common/common.module';
 import { FilesModule } from './files/files.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -20,12 +21,10 @@ import { FilesModule } from './files/files.module';
       autoLoadEntities: true,
       synchronize: process.env.ENV === 'development',
     }),
-
     ProductosModule,
-
     CommonModule,
-
     FilesModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
