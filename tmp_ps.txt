@@ -52,10 +52,10 @@ export class ProductosService {
   ): Promise<Producto> {
     let uploadedUrls: string[] = [];
     try {
-      // Subir las imágenes a Firebase
+      // 1. Subir las imágenes a Firebase
       uploadedUrls = await this.filesService.uploadFiles(files);
 
-      // Crear el producto en la base de datos
+      // 2. Crear el producto en la base de datos
       const { ...detallesProducto } = createProductoDto;
       const producto = this.productoRepository.create({
         ...detallesProducto,
@@ -67,7 +67,7 @@ export class ProductosService {
       await this.productoRepository.save(producto);
       return producto;
     } catch (error) {
-      // Si algo falla, eliminar las imágenes que ya se subieron
+      // 3. Si algo falla, eliminar las imágenes que ya se subieron
       if (uploadedUrls.length > 0) {
         this.logger.error(
           'Error al crear el producto en BD. Eliminando imágenes subidas...',
@@ -145,23 +145,9 @@ export class ProductosService {
    * @returns ID del producto actualizado.
    * @throws NotFoundException si no existe el producto.
    */
-  async update(
-    id: string,
-    updateProductDto: UpdateProductoDto,
-    files?: Express.Multer.File[],
-  ) {
+  async update(id: string, updateProductDto: UpdateProductoDto) {
     const { images, ...productoActualizar } = updateProductDto;
 
-    // Obtener el producto actual con sus imágenes
-    const existente = await this.productoRepository.findOne({
-      where: { id },
-      relations: { images: true },
-    });
-
-    if (!existente)
-      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
-
-    // Pre-cargar cambios de datos básicos
     const producto = await this.productoRepository.preload({
       id,
       ...productoActualizar,
@@ -172,35 +158,23 @@ export class ProductosService {
 
     const queryRunner = this.dataSource.createQueryRunner();
 
+    //Connectamos y empezamos la transacción
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    let uploadedUrls: string[] = [];
-    const oldImageUrls = (existente.images ?? []).map((i) => i.url);
-
     try {
-      // Si vienen archivos, subimos y reemplazamos imágenes
-      if (files && files.length > 0) {
-        // Subir nuevas imágenes
-        uploadedUrls = await this.filesService.uploadFiles(files);
+      if (images) {
+        // Eliminar imágenes antiguas
+        await queryRunner.manager.delete(ProductoImagen, {
+          producto: { id: producto.id },
+        });
 
-        // Reemplazar en BD (borramos registros previos y seteamos nuevos)
-        await queryRunner.manager.delete(ProductoImagen, {
-          producto: { id: producto.id },
-        });
-        producto.images = uploadedUrls.map((url) =>
-          this.productoImagenRepository.create({ url }),
-        );
-      } else if (images && images.length > 0) {
-        // Si vienen URLs directamente en el DTO, usamos esas y reemplazamos
-        await queryRunner.manager.delete(ProductoImagen, {
-          producto: { id: producto.id },
-        });
-        producto.images = images.map((url) =>
-          this.productoImagenRepository.create({ url }),
+        // Asignar nuevas imágenes
+        producto.images = images.map((image) =>
+          this.productoImagenRepository.create({ url: image }),
         );
       } else {
-        // No se enviaron nuevas imágenes: conservar las existentes
+        // Si no se proporcionan imágenes, mantenemos las existentes
         producto.images = await this.productoImagenRepository.findBy({
           producto: { id: producto.id },
         });
@@ -211,31 +185,11 @@ export class ProductosService {
       await queryRunner.commitTransaction();
       await queryRunner.release();
 
-      // Limpieza post-commit: si reemplazamos imágenes, eliminar las viejas del storage
-      const replacedWithNewFiles = files && files.length > 0;
-      const replacedWithUrls = !replacedWithNewFiles && images && images.length > 0;
-      if ((replacedWithNewFiles || replacedWithUrls) && oldImageUrls.length > 0) {
-        // No hacer throw si falla; solo registrar
-        try {
-          await this.filesService.deleteFiles(oldImageUrls);
-        } catch (e) {
-          this.logger.warn('Fallo al eliminar imágenes antiguas del storage');
-        }
-      }
-
       return producto.id;
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      // Si falló algo tras subir imágenes nuevas, limpiarlas
-      if (uploadedUrls.length > 0) {
-        try {
-          await this.filesService.deleteFiles(uploadedUrls);
-        } catch (e) {
-          this.logger.warn('Fallo al limpiar imágenes recién subidas');
-        }
-      }
-
+      // Deja el error para que pueda ser manejado por el filtro global
       throw error;
     }
   }
@@ -276,3 +230,4 @@ export class ProductosService {
     return producto;
   }
 }
+

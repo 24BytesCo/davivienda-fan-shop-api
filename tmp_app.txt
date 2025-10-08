@@ -4,17 +4,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductosModule } from './productos/productos.module';
 import { CommonModule } from './common/common.module';
 import { FilesModule } from './files/files.module';
-import { AuthModule } from './auth/auth.module';
+ { OrdenesModule } from './ordenes/ordenes.module';
 import { CarritoModule } from './carrito/carrito.module';
-import { OrdenesModule } from './ordenes/ordenes.module';
-import { ConfiguracionModule } from './configuracion/configuracion.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
 
     TypeOrmModule.forRoot({
-      // Configuración de la base de datos usando variables de entorno
+      // ConfiguraciÃ³n de la base de datos usando variables de entorno
       type: 'postgres',
       host: process.env.DB_HOST,
       port: +(process.env.DB_PORT ?? 5432),
@@ -27,12 +25,12 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     ProductosModule,
     CommonModule,
     FilesModule,
-    AuthModule,
-    OrdenesModule,
+    AuthModule,\n    OrdenesModule,
     CarritoModule,
-    ConfiguracionModule,
   ],
   controllers: [],
   providers: [],
 })
 export class AppModule {}
+
+
