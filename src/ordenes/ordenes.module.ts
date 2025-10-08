@@ -12,7 +12,7 @@ import { MovimientoPuntos } from 'src/puntos/entities/movimiento-puntos.entity';
 import { ConfiguracionModule } from 'src/configuracion/configuracion.module';
 
 /**
- * MÃ³dulo de Ã³rdenes y checkout.
+ * Módulo de órdenes y checkout.
  */
 @Module({
   imports: [TypeOrmModule.forFeature([Orden, OrdenItem, Carrito, CarritoItem, Producto, SaldoPuntos, MovimientoPuntos]), ConfiguracionModule],
