@@ -3,7 +3,6 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductosModule } from './productos/productos.module';
 import { CommonModule } from './common/common.module';
-import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -24,8 +23,6 @@ import { FilesModule } from './files/files.module';
     ProductosModule,
 
     CommonModule,
-
-    FilesModule,
   ],
   controllers: [],
   providers: [],

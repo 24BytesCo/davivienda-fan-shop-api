@@ -12,7 +12,7 @@ async function main() {
 
   //usar validaciones globales
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );
 
    // Aplicando el interceptor de respuesta estándar para todas las respuestas

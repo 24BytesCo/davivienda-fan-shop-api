@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,7 +11,6 @@ import { UpdateProductoDto } from './dto/update-producto.dto';
 import { Producto, ProductoImagen } from './entities';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid';
-import { FilesService } from 'src/files/files.service';
 
 @Injectable()
 export class ProductosService {
@@ -29,51 +27,29 @@ export class ProductosService {
     private readonly productoImagenRepository: Repository<ProductoImagen>,
 
     private readonly dataSource: DataSource,
-
-    // Inyecta el servicio de archivos
-    private readonly filesService: FilesService,
   ) {}
 
   /**
-   * Crea un nuevo producto y sube sus imágenes a Firebase.
-   * @param {CreateProductoDto} createProductoDto - DTO con datos del producto.
-   * @param {Express.Multer.File[]} files - Archivos de imagen.
-   * @returns {Promise<Producto>} El producto creado.
+   * Crea un nuevo producto.
+   * @param {CreateProductoDto} createProductoDto - DTO para crear el producto.
+   * @returns {Promise<string>} El ID del producto creado.
    */
-  async create(
-    createProductoDto: CreateProductoDto,
-    files: Express.Multer.File[],
-  ): Promise<Producto> {
-    let uploadedUrls: string[] = [];
-    try {
-      // 1. Subir las imágenes a Firebase
-      uploadedUrls = await this.filesService.uploadFiles(files);
+  async create(createProductoDto: CreateProductoDto): Promise<string> {
+    const { images = [], ...detallesProducto } = createProductoDto;
 
-      // 2. Crear el producto en la base de datos
-      const { ...detallesProducto } = createProductoDto;
-      const producto = this.productoRepository.create({
-        ...detallesProducto,
-        images: uploadedUrls.map((url) =>
-          this.productoImagenRepository.create({ url }),
-        ),
-      });
+    // Creamos el producto con las imágenes asociadas
+    const producto = this.productoRepository.create({
+      ...detallesProducto,
+      images: images.map((image) =>
+        this.productoImagenRepository.create({ url: image }),
+      ),
+    });
 
-      await this.productoRepository.save(producto);
-      return producto;
-    } catch (error) {
-      // 3. Si algo falla, eliminar las imágenes que ya se subieron
-      if (uploadedUrls.length > 0) {
-        this.logger.error(
-          'Error al crear el producto en BD. Eliminando imágenes subidas...',
-        );
-        await this.filesService.deleteFiles(uploadedUrls);
-      }
-      // Re-lanzamos el error para que lo maneje el AllExceptionsFilter
-      this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error al crear el producto. La operación fue revertida.',
-      );
-    }
+    console.log('producto', producto);
+
+    await this.productoRepository.save(producto);
+
+    return producto.id;
   }
 
   /**
