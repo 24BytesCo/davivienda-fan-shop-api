@@ -1,6 +1,6 @@
 ﻿import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, Repository, MoreThanOrEqual } from "typeorm";
 import { Orden, ModoPago } from "./entities/orden.entity";
 import { OrdenItem } from "./entities/orden-item.entity";
 import { Carrito } from "src/carrito/entities/carrito.entity";
@@ -55,23 +55,43 @@ export class OrdenesService {
     await qr.startTransaction();
     try {
       if (modoPago === ModoPago.PUNTOS) {
-        // Pagar con puntos: verificar saldo, debitar, descontar stock y limpiar carrito
+        // Pagar con puntos con garantías de concurrencia
         const orden = this.ordenRepo.create({ userId, totalPoints: total, estado: EstadoOrden.PAGADA, modoPago: ModoPago.PUNTOS });
         orden.items = carrito.items.map((ci) => this.itemRepo.create({ producto: ci.producto, cantidad: ci.cantidad, pointsUnit: ci.producto.points }));
         await qr.manager.save(orden);
 
-        // Saldo de puntos
-        let saldo = await qr.manager.findOne(SaldoPuntos, { where: { userId } });
-        if (!saldo) saldo = qr.manager.create(SaldoPuntos, { userId, saldo: 0 });
-        if (saldo.saldo < total) throw new BadRequestException('Saldo de puntos insuficiente');
-        saldo.saldo = saldo.saldo - total;
-        await qr.manager.save(saldo);
+        // Asegurar fila de saldo existe
+        await qr.manager
+          .createQueryBuilder()
+          .insert()
+          .into(SaldoPuntos)
+          .values({ userId, saldo: 0 })
+          .orIgnore()
+          .execute();
+
+        // Debitar saldo de forma atómica si alcanza
+        const saldoDec = await qr.manager.decrement(
+          SaldoPuntos,
+          { userId, saldo: MoreThanOrEqual(total) },
+          'saldo',
+          total,
+        );
+        if (!saldoDec.affected) throw new BadRequestException('Saldo de puntos insuficiente');
+
         const mov = qr.manager.create(MovimientoPuntos, { userId, tipo: 'debito', cantidad: total, ordenId: orden.id, concepto: 'Pago con puntos' });
         await qr.manager.save(mov);
 
-        // Descontar stock
+        // Descontar stock de forma atómica por producto
         for (const it of carrito.items) {
-          await qr.manager.update(Producto, { id: it.producto.id }, { stock: it.producto.stock - it.cantidad });
+          const res = await qr.manager.decrement(
+            Producto,
+            { id: it.producto.id, stock: MoreThanOrEqual(it.cantidad) },
+            'stock',
+            it.cantidad,
+          );
+          if (!res.affected) {
+            throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
+          }
         }
 
         // Limpiar carrito
@@ -114,9 +134,15 @@ export class OrdenesService {
       for (const it of full.items) {
         if (it.cantidad > it.producto.stock) throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
       }
-      // Descontar stock
+      // Descontar stock de forma atómica
       for (const it of full.items) {
-        await qr.manager.update(Producto, { id: it.producto.id }, { stock: it.producto.stock - it.cantidad });
+        const res = await qr.manager.decrement(
+          Producto,
+          { id: it.producto.id, stock: MoreThanOrEqual(it.cantidad) },
+          'stock',
+          it.cantidad,
+        );
+        if (!res.affected) throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
       }
       // Limpiar carrito del usuario
       await qr.manager.delete(CarritoItem, { carrito: { userId: full.userId } as any } as any);
