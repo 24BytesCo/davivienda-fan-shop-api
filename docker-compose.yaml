@@ -1,13 +1,10 @@
-version: '3.8'
-
-
 services:
   api:
     build: .
-    container_name: davivienda-fan-shop-api
+    container_name: davivienda-fan-shop-api/24bytes
     restart: always
     ports:
-      - '3000:3000'
+      - '${API_PORT_DOCKER:-3000}:3000'
     environment:
       ENV: ${ENV}
       DB_HOST: db
@@ -18,6 +15,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
       FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET}
+    volumes:
+      # Mount real Firebase credentials at runtime where compiled code expects it
+      - ./firebase-credentials.json:/app/dist/firebase-credentials.json:ro
     depends_on:
       db:
         condition: service_healthy
