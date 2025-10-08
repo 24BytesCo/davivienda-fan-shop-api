@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 import { Producto, ProductoImagen } from './entities';
@@ -25,6 +25,8 @@ export class ProductosService {
     private readonly productoRepository: Repository<Producto>,
     @InjectRepository(ProductoImagen)
     private readonly productoImagenRepository: Repository<ProductoImagen>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -105,22 +107,63 @@ export class ProductosService {
     return producto;
   }
 
+  /**
+   * Actualiza un producto y sus imágenes.
+   * Si se envían nuevas imágenes, reemplaza las anteriores.
+   * Si no, mantiene las existentes.
+   * Usa transacción para asegurar la integridad.
+   * @param id - ID del producto.
+   * @param updateProductDto - Datos actualizados.
+   * @returns ID del producto actualizado.
+   * @throws NotFoundException si no existe el producto.
+   */
   async update(id: string, updateProductDto: UpdateProductoDto) {
-    // // Map images (string[]) to ProductoImagen[] if images are present
-    // let updateData = { id, ...updateProductDto };
-    // if (updateProductDto.images) {
-    //   updateData = {
-    //     ...updateData,
-    //     images: updateProductDto.images.map((url) => ({ url })),
-    //   };
-    // }
-    // const product = await this.productoRepository.preload(updateData);
+    const { images, ...productoActualizar } = updateProductDto;
 
-    // if (!product)
-    //   throw new NotFoundException(`Product with id: ${id} not found`);
+    const producto = await this.productoRepository.preload({
+      id,
+      ...productoActualizar,
+    });
 
-    // await this.productoRepository.save(product);
-    return 'Actualización de productos no implementada aún';
+    if (!producto)
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    //Connectamos y empezamos la transacción
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      if (images) {
+        // Eliminar imágenes antiguas
+        await queryRunner.manager.delete(ProductoImagen, {
+          producto: { id: producto.id },
+        });
+
+        // Asignar nuevas imágenes
+        producto.images = images.map((image) =>
+          this.productoImagenRepository.create({ url: image }),
+        );
+      } else {
+        // Si no se proporcionan imágenes, mantenemos las existentes
+        producto.images = await this.productoImagenRepository.findBy({
+          producto: { id: producto.id },
+        });
+      }
+
+      await queryRunner.manager.save(producto);
+
+      await queryRunner.commitTransaction();
+      await queryRunner.release();
+
+      return producto.id;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      // Deja el error para que pueda ser manejado por el filtro global
+      throw error;
+    }
   }
 
   /**
