@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 // Importa las credenciales de Firebase
 import serviceAccount from '../../firebase-credentials.json';
 
+/**
+ * Servicio de integración con Firebase Storage para subir y eliminar archivos.
+ */
 @Injectable()
 export class FilesService {
   private readonly logger = new Logger(FilesService.name);

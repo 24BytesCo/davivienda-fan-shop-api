@@ -6,7 +6,9 @@ import { User } from '../entities/user.entity';
 import { RolesUsuario } from '../enum/roles-usuario.enum';
 import * as bcrypt from 'bcryptjs';
 
-// Crea un usuario inicial al iniciar el módulo si no existen usuarios
+/**
+ * Seeder: crea un usuario inicial si no existen usuarios.
+ */
 @Injectable()
 export class FirstUserSeeder implements OnModuleInit {
   private readonly logger = new Logger(FirstUserSeeder.name);
@@ -17,7 +19,7 @@ export class FirstUserSeeder implements OnModuleInit {
     private readonly configService: ConfigService,
   ) {}
 
-  // Hook de inicialización del módulo
+  /** Hook de inicialización del módulo. */
   async onModuleInit() {
     const count = await this.usersRepository.count();
     if (count > 0) return; // Ya existen usuarios
@@ -51,7 +53,7 @@ export class FirstUserSeeder implements OnModuleInit {
     }
   }
 
-  // Normaliza cadena de rol hacia el enum del dominio
+  /** Normaliza cadena de rol hacia el enum del dominio. */
   private resolveRole(roleEnv?: string): RolesUsuario {
     switch ((roleEnv ?? '').toLowerCase().trim()) {
       case 'administrador':

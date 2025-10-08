@@ -14,6 +14,9 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { validate as isUUID } from 'uuid';
 import { FilesService } from 'src/files/files.service';
 
+/**
+ * Servicio: CRUD de productos y manejo de imágenes.
+ */
 @Injectable()
 export class ProductosService {
   private readonly logger = new Logger('ProductsService');

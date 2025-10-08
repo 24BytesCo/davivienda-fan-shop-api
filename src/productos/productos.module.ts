@@ -5,6 +5,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Producto, ProductoImagen} from './entities';
 import { FilesModule } from 'src/files/files.module';
 
+/**
+ * Módulo de productos: controladores, servicios y persistencia.
+ */
 @Module({
   controllers: [ProductosController],
   providers: [ProductosService],
