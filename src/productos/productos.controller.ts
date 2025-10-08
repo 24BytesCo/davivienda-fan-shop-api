@@ -10,24 +10,33 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { ProductosService } from './productos.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('productos')
 export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   /**
-   * Crea un nuevo producto.
-   * @param {CreateProductoDto} createProductoDto - DTO para la creación.
+   * Crea un nuevo producto con imágenes.
+   * La petición debe ser de tipo multipart/form-data.
+   * @param {CreateProductoDto} createProductoDto - DTO con los datos del producto.
+   * @param {Express.Multer.File[]} files - Arreglo de archivos de imagen.
    */
   @Post()
+  @UseInterceptors(FilesInterceptor('images')) // 'images' es el `name` del campo para los archivos
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createProductoDto: CreateProductoDto) {
-    return this.productosService.create(createProductoDto);
+  create(
+    @Body() createProductoDto: CreateProductoDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.productosService.create(createProductoDto, files);
   }
 
   /**
