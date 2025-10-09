@@ -94,8 +94,8 @@ export class OrdenesService {
           }
         }
 
-        // Limpiar carrito
-        await qr.manager.delete(CarritoItem, { carrito: { id: carrito.id } as any });
+        // Limpiar carrito eliminando el carrito (onDelete: CASCADE limpia ítems)
+        await qr.manager.delete(Carrito, { id: carrito.id });
 
         await qr.commitTransaction();
         return orden;
@@ -120,6 +120,7 @@ export class OrdenesService {
   /** Confirma el pago de una orden en dinero: descuenta stock y limpia carrito. */
   async confirmarPago(ordenId: string) {
     const orden = await this.ordenRepo.findOne({ where: { id: ordenId } });
+    
     if (!orden) throw new NotFoundException('Orden no encontrada');
     if (orden.modoPago !== ModoPago.DINERO) throw new BadRequestException('La orden no es de pago con dinero');
     if (orden.estado !== EstadoOrden.PENDIENTE) throw new BadRequestException('La orden no está pendiente');
@@ -144,8 +145,8 @@ export class OrdenesService {
         );
         if (!res.affected) throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
       }
-      // Limpiar carrito del usuario
-      await qr.manager.delete(CarritoItem, { carrito: { userId: full.userId } as any } as any);
+      // Limpiar carrito del usuario eliminando el carrito (CASCADE limpia ítems)
+      await qr.manager.delete(Carrito, { userId: full.userId });
       // Actualizar orden
       await qr.manager.update(Orden, { id: ordenId }, { estado: EstadoOrden.PAGADA });
       await qr.commitTransaction();
