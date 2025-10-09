@@ -1,7 +1,9 @@
 services:
   api:
     build: .
-    container_name: davivienda-fan-shop-api/24bytes
+    container_name: davivienda-fan-shop-api
+    # Optionally tag the built image to reuse/push
+    # image: 24bytes/davivienda-fan-shop-api:1.0.1
     restart: always
     ports:
       - '${API_PORT_DOCKER:-3000}:3000'

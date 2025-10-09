@@ -1,7 +1,8 @@
-﻿import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+﻿import { Body, Controller, Get, Param, Post, UseGuards, Req } from '@nestjs/common';
 import { OrdenesService } from './ordenes.service';
 import { ModoPago } from './entities/orden.entity';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
 
 /**
  * Endpoints para gestión de órdenes y checkout.
@@ -16,6 +17,16 @@ export class OrdenesController {
   @ApiParam({ name: 'userId', description: 'UUID del usuario' })
   @ApiOperation({ summary: 'Listar órdenes del usuario' })
   findByUser(@Param('userId') userId: string) {
+    return this.ordenesService.findByUser(userId);
+  }
+
+  /** Listar órdenes del usuario autenticado (token). */
+  @Get('mis-ordenes')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Listar mis órdenes (requiere token)' })
+  findMyOrders(@Req() req: any) {
+    const userId = req.user?.sub as string;
     return this.ordenesService.findByUser(userId);
   }
 

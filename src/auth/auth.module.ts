@@ -6,13 +6,15 @@ import { User } from './entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { FirstUserSeeder } from './providers/first-user.seeder';
+import { AdminGuard } from './guards/admin.guard';
+import { JwtGuard } from './guards/jwt.guard';
 
 /**
  * Módulo de autenticación: controladores, servicios y configuración JWT.
  */
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, FirstUserSeeder],
+  providers: [AuthService, FirstUserSeeder, AdminGuard, JwtGuard],
   imports: [
         // Acceso a variables de entorno
         ConfigModule,
@@ -28,6 +30,6 @@ import { FirstUserSeeder } from './providers/first-user.seeder';
         // Repositorio de la entidad User
         TypeOrmModule.forFeature([User]),
   ],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, JwtModule, AdminGuard, JwtGuard],
 })
 export class AuthModule {}

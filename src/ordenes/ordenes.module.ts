@@ -10,12 +10,13 @@ import { Producto } from 'src/productos/entities/producto.entity';
 import { SaldoPuntos } from 'src/puntos/entities/saldo-puntos.entity';
 import { MovimientoPuntos } from 'src/puntos/entities/movimiento-puntos.entity';
 import { ConfiguracionModule } from 'src/configuracion/configuracion.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 /**
  * Módulo de órdenes y checkout.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Orden, OrdenItem, Carrito, CarritoItem, Producto, SaldoPuntos, MovimientoPuntos]), ConfiguracionModule],
+  imports: [TypeOrmModule.forFeature([Orden, OrdenItem, Carrito, CarritoItem, Producto, SaldoPuntos, MovimientoPuntos]), ConfiguracionModule, AuthModule],
   providers: [OrdenesService],
   controllers: [OrdenesController],
   exports: [TypeOrmModule, OrdenesService],
