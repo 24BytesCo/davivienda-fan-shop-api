@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CarritoModule } from './carrito/carrito.module';
 import { OrdenesModule } from './ordenes/ordenes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { PuntosModule } from './puntos/puntos.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     OrdenesModule,
     CarritoModule,
     ConfiguracionModule,
+    PuntosModule,
   ],
   controllers: [],
   providers: [],
