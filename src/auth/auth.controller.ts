@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -7,6 +7,7 @@ import { ApiBody, ApiCreatedResponse, ApiExtraModels, ApiOkResponse, ApiOperatio
 import { StandardResponseDto } from 'src/common/dtos/standard-response.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { AdminGuard } from './guards/admin.guard';
 
 /**
  * Controlador de autenticación: registro y login.
@@ -61,5 +62,30 @@ export class AuthController {
     return await this.authService.login(loginDto);
   }
  
+  /**
+   * Lista todos los usuarios activos (solo administradores).
+   */
+  @Get('users')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: 'Listar usuarios activos (solo admin)' })
+  @ApiOkResponse({
+    description: 'Listado de usuarios activos',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(StandardResponseDto) },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(UserResponseDto) },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async listUsers() {
+    return await this.authService.listActiveUsers();
+  }
   
 }

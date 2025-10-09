@@ -93,6 +93,11 @@ export class AuthService {
     return rest;
   }
 
+  async listActiveUsers() {
+    const users = await this.usersRepository.find({ where: { isActive: true } });
+    return users.map((u) => this.sanitize(u));
+  }
+
   /**
    * Valida credenciales y emite un JWT.
    */
