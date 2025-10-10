@@ -44,7 +44,12 @@ export class OrdenesService {
     let total = 0;
     for (const it of carrito.items) {
       if (it.cantidad > it.producto.stock) {
-        throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
+        throw new BadRequestException({
+          message: `Stock insuficiente para ${it.producto.title}`,
+          code: 'STOCK_INSUFICIENTE',
+          detalle: `Disponible: ${it.producto.stock}, solicitado: ${it.cantidad}`,
+          data: { productoId: it.producto.id, disponible: it.producto.stock, solicitado: it.cantidad },
+        });
       }
       total += it.producto.points * it.cantidad;
     }
@@ -76,7 +81,12 @@ export class OrdenesService {
           'saldo',
           total,
         );
-        if (!saldoDec.affected) throw new BadRequestException('Saldo de puntos insuficiente');
+        if (!saldoDec.affected)
+          throw new BadRequestException({
+            message: 'Saldo de puntos insuficiente',
+            code: 'SALDO_INSUFICIENTE',
+            data: { requerido: total },
+          });
 
         const mov = qr.manager.create(MovimientoPuntos, { userId, tipo: 'debito', cantidad: total, ordenId: orden.id, concepto: 'Pago con puntos' });
         await qr.manager.save(mov);
@@ -90,7 +100,12 @@ export class OrdenesService {
             it.cantidad,
           );
           if (!res.affected) {
-            throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
+            throw new BadRequestException({
+              message: `Stock insuficiente para ${it.producto.title}`,
+              code: 'STOCK_INSUFICIENTE',
+              detalle: `No fue posible reservar ${it.cantidad} unidades`,
+              data: { productoId: it.producto.id, solicitado: it.cantidad },
+            });
           }
         }
 
@@ -133,7 +148,13 @@ export class OrdenesService {
       if (!full) throw new NotFoundException('Orden no encontrada');
       // Validar stock actual
       for (const it of full.items) {
-        if (it.cantidad > it.producto.stock) throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
+        if (it.cantidad > it.producto.stock)
+          throw new BadRequestException({
+            message: `Stock insuficiente para ${it.producto.title}`,
+            code: 'STOCK_INSUFICIENTE',
+            detalle: `Disponible: ${it.producto.stock}, solicitado: ${it.cantidad}`,
+            data: { productoId: it.producto.id, disponible: it.producto.stock, solicitado: it.cantidad },
+          });
       }
       // Descontar stock de forma atómica
       for (const it of full.items) {
@@ -143,7 +164,13 @@ export class OrdenesService {
           'stock',
           it.cantidad,
         );
-        if (!res.affected) throw new BadRequestException(`Stock insuficiente para ${it.producto.title}`);
+        if (!res.affected)
+          throw new BadRequestException({
+            message: `Stock insuficiente para ${it.producto.title}`,
+            code: 'STOCK_INSUFICIENTE',
+            detalle: `No fue posible reservar ${it.cantidad} unidades`,
+            data: { productoId: it.producto.id, solicitado: it.cantidad },
+          });
       }
       // Limpiar carrito del usuario eliminando el carrito (CASCADE limpia ítems)
       await qr.manager.delete(Carrito, { userId: full.userId });
