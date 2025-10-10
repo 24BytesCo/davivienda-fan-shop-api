@@ -21,18 +21,17 @@ export interface StandardResponse<T> {
 export class TransformResponseInterceptor<T>
   implements NestInterceptor<T, StandardResponse<T>>
 {
-  
   /**
    * Intercepta la respuesta y la transforma al formato estándar.
    * @param {ExecutionContext} context - Contexto de la petición.
-   * @param {CallHandler} next - Objeto para continuar el flujo de la petición.
+   * @param {CallHandler} next - Siguiente manejador en el pipeline.
    * @returns {Observable<StandardResponse<T>>}
    */
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<StandardResponse<T>> {
-    // Obtenemos el código de estado de la respuesta
+    // Obtener el código de estado de la respuesta actual
     const statusCode = context.switchToHttp().getResponse().statusCode;
 
     return next.handle().pipe(
@@ -40,8 +39,9 @@ export class TransformResponseInterceptor<T>
         statusCode,
         ok: true,
         message: 'Operación exitosa',
-        data: data || null, // Si no hay datos, retornamos null
+        data: data || null,
       })),
     );
   }
 }
+

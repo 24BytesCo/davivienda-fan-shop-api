@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-@Catch() // Captura TODAS las excepciones, no solo las HttpException
+@Catch() // Captura TODAS las excepciones, no solo HttpException
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
 
@@ -40,11 +40,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ...(typeof errorResponse === 'object' ? errorResponse : { message: errorResponse }),
         data: null,
       };
-      
-    // Caso 2: Es un error de la base de datos (con la propiedad 'code')
+
+    // Caso 2: Error de base de datos (con propiedad 'code')
     } else if (exception.code) {
       this.logger.error('Error de base de datos detectado', exception.stack);
-      
+
       switch (exception.code) {
         case '23505': // unique_violation
           status = HttpStatus.CONFLICT;
@@ -57,7 +57,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
             data: null,
           };
           break;
-        
+
         // Otros errores de BD que son Bad Request
         case '23503': // foreign_key_violation
         case '23502': // not_null_violation
@@ -81,8 +81,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
             data: null,
           };
       }
-    
-    // Caso 3: Es un error genérico no controlado
+
+    // Caso 3: Error genérico no controlado
     } else {
       this.logger.error('Error no controlado', exception.stack);
       responseBody = {
@@ -92,14 +92,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
         data: null,
       };
     }
-    
+
     response.status(status).json(responseBody);
   }
-  
+
   /**
-   * Genera mensajes para errores de tipo BadRequest de la BD.
+   * Mensajes para errores de tipo BadRequest de la BD.
    * @param {string} code - Código de error de PostgreSQL.
-   * @private
    */
   private getBadRequestMessage(code: string): string {
     switch (code) {
@@ -114,3 +113,4 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
   }
 }
+

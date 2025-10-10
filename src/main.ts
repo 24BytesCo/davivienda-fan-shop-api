@@ -11,7 +11,7 @@ async function main() {
   // Establecer prefijo global para las rutas
   app.setGlobalPrefix('api');
 
-  //usar validaciones globales
+  // Usar validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -47,14 +47,13 @@ async function main() {
   // Aplicando el interceptor de respuesta estándar para todas las respuestas
   app.useGlobalInterceptors(new TransformResponseInterceptor());
 
-  //Aplicando el filtro de excepciones global
+  // Aplicando el filtro de excepciones global
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  //Configurar cors
+  // Configurar CORS
   app.enableCors();
-
-  // Fin configuración Swagger
 
   await app.listen(process.env.API_PORT ?? 3000);
 }
 main();
+

@@ -1,4 +1,4 @@
-﻿import { Column, Entity, PrimaryColumn, UpdateDateColumn } from "typeorm";
+import { Column, Entity, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
 /**
  * Saldo de puntos por usuario.
@@ -17,3 +17,4 @@ export class SaldoPuntos {
   @UpdateDateColumn()
   updatedAt: Date;
 }
+

@@ -115,7 +115,7 @@ export class FilesService {
       
       const file = this.bucket.file(fileName);
       await file.delete();
-    } catch (error) {
+    } catch (error: any) {
       // Si el error es 'not found', lo ignoramos, puede que ya haya sido borrado.
       if (error.code === 404) {
         this.logger.warn(`El archivo en la URL ${url} no fue encontrado para eliminar.`);
@@ -126,3 +126,4 @@ export class FilesService {
     }
   }
 }
+

@@ -69,3 +69,4 @@ export class FirstUserSeeder implements OnModuleInit {
     }
   }
 }
+

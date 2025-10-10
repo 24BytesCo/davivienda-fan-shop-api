@@ -15,7 +15,7 @@ export class Carrito {
   @Column('uuid')
   userId: string;
 
-  /** Items contenidos en el carrito */
+  /** Ítems contenidos en el carrito */
   @OneToMany(() => CarritoItem, (item) => item.carrito, { cascade: true })
   items: CarritoItem[];
 

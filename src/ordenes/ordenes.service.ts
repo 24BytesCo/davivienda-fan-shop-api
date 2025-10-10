@@ -1,4 +1,4 @@
-﻿import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository, MoreThanOrEqual } from "typeorm";
 import { Orden, ModoPago } from "./entities/orden.entity";
@@ -65,7 +65,7 @@ export class OrdenesService {
         orden.items = carrito.items.map((ci) => this.itemRepo.create({ producto: ci.producto, cantidad: ci.cantidad, pointsUnit: ci.producto.points }));
         await qr.manager.save(orden);
 
-        // Asegurar fila de saldo existe
+        // Asegurar que la fila de saldo exista
         await qr.manager
           .createQueryBuilder()
           .insert()
@@ -135,7 +135,7 @@ export class OrdenesService {
   /** Confirma el pago de una orden en dinero: descuenta stock y limpia carrito. */
   async confirmarPago(ordenId: string) {
     const orden = await this.ordenRepo.findOne({ where: { id: ordenId } });
-    
+
     if (!orden) throw new NotFoundException('Orden no encontrada');
     if (orden.modoPago !== ModoPago.DINERO) throw new BadRequestException('La orden no es de pago con dinero');
     if (orden.estado !== EstadoOrden.PENDIENTE) throw new BadRequestException('La orden no está pendiente');
@@ -186,3 +186,4 @@ export class OrdenesService {
     }
   }
 }
+

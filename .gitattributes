@@ -1,0 +1,26 @@
+# Normalize line endings and help avoid encoding issues on Windows
+* text=auto eol=lf
+
+# Treat these as text
+*.ts text
+*.tsx text
+*.js text
+*.json text
+*.yml text
+*.yaml text
+*.md text
+*.mjs text
+*.cjs text
+*.env text
+*.txt text
+*.dockerignore text
+*.gitignore text
+
+# Binary (leave untouched)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+

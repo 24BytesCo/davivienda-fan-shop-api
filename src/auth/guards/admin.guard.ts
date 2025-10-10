@@ -26,7 +26,7 @@ export class AdminGuard implements CanActivate {
       req.user = payload;
       return true;
     } catch (e) {
-      // If it's an Unauthorized or Forbidden, rethrow; otherwise standardize
+      // Si es Unauthorized o Forbidden, relanzar; en otro caso, estandarizar
       if (e instanceof UnauthorizedException || e instanceof ForbiddenException) throw e;
       throw new UnauthorizedException('Token inválido o expirado');
     }

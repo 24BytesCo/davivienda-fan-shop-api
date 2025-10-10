@@ -1,4 +1,4 @@
-﻿import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 /**
  * Movimiento de puntos: débito o crédito.
@@ -32,3 +32,4 @@ export class MovimientoPuntos {
   @CreateDateColumn()
   createdAt: Date;
 }
+

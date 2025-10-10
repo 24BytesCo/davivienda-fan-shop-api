@@ -12,6 +12,7 @@ import {
   Query,
   UseInterceptors,
   UploadedFiles,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductosService } from './productos.service';
 import { CreateProductoDto } from './dto/create-producto.dto';
@@ -22,7 +23,6 @@ import { ApiBody, ApiConsumes, ApiCreatedResponse, ApiExtraModels, ApiOkResponse
 import { StandardResponseDto } from 'src/common/dtos/standard-response.dto';
 import { Producto } from './entities';
 import { AdminGuard } from 'src/auth/guards/admin.guard';
-import { UseGuards } from '@nestjs/common';
 
 /**
  * Controlador de endpoints para gestión de productos.
@@ -97,7 +97,7 @@ export class ProductosController {
   }
 
   /**
-   * Obtiene un producto activo por su ID.
+   * Obtiene un producto (incluidos eliminados) por su ID.
    * @param {string} id - UUID del producto.
    */
   @Get('deleted/:id')
@@ -201,3 +201,4 @@ export class ProductosController {
     return await this.productosService.remove(id);
   }
 }
+

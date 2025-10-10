@@ -25,3 +25,4 @@ export class UserOrAdminGuard implements CanActivate {
     throw new ForbiddenException('Operación permitida solo para el propio usuario o administradores');
   }
 }
+

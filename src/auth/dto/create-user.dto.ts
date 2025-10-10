@@ -41,3 +41,4 @@ export class CreateUserDto {
     @IsEnum(RolesUsuario, { message: 'El rol del creador es inválido' })
     creatorRole?: RolesUsuario;
 }
+

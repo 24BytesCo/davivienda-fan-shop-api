@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Param, Post, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards, Req } from '@nestjs/common';
 import { OrdenesService } from './ordenes.service';
 import { ModoPago } from './entities/orden.entity';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
@@ -32,6 +32,7 @@ export class OrdenesController {
   findMyOrders(@Req() req: any) {
     const userId = req.user?.sub as string;
     return this.ordenesService.findByUser(userId);
+    
   }
 
   /** Realiza checkout del carrito. */
@@ -54,3 +55,4 @@ export class OrdenesController {
     return this.ordenesService.confirmarPago(id);
   }
 }
+

@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -24,28 +23,16 @@ const isUUID = (s: string): boolean => UUID_REGEX.test(s);
 export class ProductosService {
   private readonly logger = new Logger('ProductsService');
 
-  /**
-   * Inyecta el repositorio de la entidad Producto.
-   * @param {Repository<Producto>} productoRepository - Repositorio de TypeORM.
-   */
   constructor(
     @InjectRepository(Producto)
     private readonly productoRepository: Repository<Producto>,
     @InjectRepository(ProductoImagen)
     private readonly productoImagenRepository: Repository<ProductoImagen>,
-
     private readonly dataSource: DataSource,
-
-    // Inyecta el servicio de archivos
     private readonly filesService: FilesService,
   ) {}
 
-  /**
-   * Crea un nuevo producto y sube sus imágenes a Firebase.
-   * @param {CreateProductoDto} createProductoDto - DTO con datos del producto.
-   * @param {Express.Multer.File[]} files - Archivos de imagen.
-   * @returns {Promise<Producto>} El producto creado.
-   */
+  /** Crea un nuevo producto y sube sus imágenes a Firebase. */
   async create(
     createProductoDto: CreateProductoDto,
     files: Express.Multer.File[],
@@ -69,21 +56,15 @@ export class ProductosService {
     } catch (error) {
       // Si algo falla, eliminar las imágenes que ya se subieron
       if (uploadedUrls.length > 0) {
-        this.logger.error(
-          'Error al crear el producto en BD. Eliminando imágenes subidas...',
-        );
+        this.logger.error('Error al crear el producto en BD. Eliminando imágenes subidas...');
         await this.filesService.deleteFiles(uploadedUrls);
       }
-      // Re-lanzamos el error para que lo maneje el AllExceptionsFilter
       this.logger.error(error);
       throw error;
     }
   }
 
-  /**
-   * Obtiene todos los productos paginados.
-   * @returns {Promise<Producto[]>} Un arreglo de productos.
-   */
+  /** Obtiene todos los productos paginados. */
   async findAll(paginationDto: PaginationDto): Promise<Producto[]> {
     const { limit = 10, offset = 0 } = paginationDto;
     return await this.productoRepository.find({
@@ -93,16 +74,10 @@ export class ProductosService {
     });
   }
 
-  /**
-   * Obtiene un producto por su término (UUID, slug o título).
-   * @param {string} termino - UUID, slug o título del producto.
-   * @returns {Promise<Producto>} El producto encontrado.
-   */
+  /** Obtiene un producto por su término (UUID, slug o título). */
   async findOne(termino: string): Promise<Producto> {
     if (!termino) {
-      throw new BadRequestException(
-        'El término de búsqueda no puede estar vacío',
-      );
+      throw new BadRequestException('El término de búsqueda no puede estar vacío');
     }
 
     // Un solo QueryBuilder para todas las búsquedas
@@ -118,37 +93,21 @@ export class ProductosService {
       // Búsqueda por slug o título (insensible a mayúsculas)
       queryBuilder.where(
         'UPPER(producto.title) = :termino OR UPPER(producto.slug) = :termino',
-        {
-          termino: termino.toUpperCase(),
-        },
+        { termino: termino.toUpperCase() },
       );
     }
 
-    // Ejecutamos la consulta
     const producto = await queryBuilder.getOne();
-
     if (!producto)
-      throw new NotFoundException(
-        `Producto con término "${termino}" no encontrado`,
-      );
-
+      throw new NotFoundException(`Producto con término "${termino}" no encontrado`);
     return producto;
   }
 
-  /**
-   * Actualiza un producto y sus imágenes.
-   * Si se envían nuevas imágenes, reemplaza las anteriores.
-   * Si no, mantiene las existentes.
-   * Usa transacción para asegurar la integridad.
-   * @param id - ID del producto.
-   * @param updateProductDto - Datos actualizados.
-   * @returns ID del producto actualizado.
-   * @throws NotFoundException si no existe el producto.
-   */
+  /** Actualiza un producto y sus imágenes. */
   async update(
     id: string,
     updateProductDto: UpdateProductoDto,
-    files?: Express.Multer.File[],
+    files: Express.Multer.File[],
   ) {
     const { images, ...productoActualizar } = updateProductDto;
 
@@ -157,7 +116,6 @@ export class ProductosService {
       where: { id },
       relations: { images: true },
     });
-
     if (!existente)
       throw new NotFoundException(`Producto con ID ${id} no encontrado`);
 
@@ -166,12 +124,10 @@ export class ProductosService {
       id,
       ...productoActualizar,
     });
-
     if (!producto)
       throw new NotFoundException(`Producto con ID ${id} no encontrado`);
 
     const queryRunner = this.dataSource.createQueryRunner();
-
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -185,29 +141,18 @@ export class ProductosService {
         uploadedUrls = await this.filesService.uploadFiles(files);
 
         // Reemplazar en BD (borramos registros previos y seteamos nuevos)
-        await queryRunner.manager.delete(ProductoImagen, {
-          producto: { id: producto.id },
-        });
-        producto.images = uploadedUrls.map((url) =>
-          this.productoImagenRepository.create({ url }),
-        );
+        await queryRunner.manager.delete(ProductoImagen, { producto: { id: producto.id } });
+        producto.images = uploadedUrls.map((url) => this.productoImagenRepository.create({ url }));
       } else if (images && images.length > 0) {
         // Si vienen URLs directamente en el DTO, usamos esas y reemplazamos
-        await queryRunner.manager.delete(ProductoImagen, {
-          producto: { id: producto.id },
-        });
-        producto.images = images.map((url) =>
-          this.productoImagenRepository.create({ url }),
-        );
+        await queryRunner.manager.delete(ProductoImagen, { producto: { id: producto.id } });
+        producto.images = images.map((url) => this.productoImagenRepository.create({ url }));
       } else {
         // No se enviaron nuevas imágenes: conservar las existentes
-        producto.images = await this.productoImagenRepository.findBy({
-          producto: { id: producto.id },
-        });
+        producto.images = await this.productoImagenRepository.findBy({ producto: { id: producto.id } });
       }
 
       await queryRunner.manager.save(producto);
-
       await queryRunner.commitTransaction();
       await queryRunner.release();
 
@@ -215,7 +160,6 @@ export class ProductosService {
       const replacedWithNewFiles = files && files.length > 0;
       const replacedWithUrls = !replacedWithNewFiles && images && images.length > 0;
       if ((replacedWithNewFiles || replacedWithUrls) && oldImageUrls.length > 0) {
-        // No hacer throw si falla; solo registrar
         try {
           await this.filesService.deleteFiles(oldImageUrls);
         } catch (e) {
@@ -240,26 +184,16 @@ export class ProductosService {
     }
   }
 
-  /**
-   * Realiza una eliminación lógica de un producto.
-   * @param {string} id - UUID del producto a eliminar.
-   */
+  /** Realiza una eliminación lógica de un producto. */
   async remove(id: string) {
     const producto = await this.productoRepository.findOneBy({ id });
-
     if (!producto)
       throw new NotFoundException(`Producto con ID ${id} no encontrado`);
-
     await this.productoRepository.softDelete(id);
-
     return producto.id;
   }
 
-  /**
-   * Obtiene un producto por ID (incluyendo eliminados).
-   * @param {string} id - UUID del producto.
-   * @returns {Promise<Producto>} El producto encontrado.
-   */
+  /** Obtiene un producto por ID (incluyendo eliminados). */
   async findOneWithDeleted(id: string): Promise<Producto> {
     const producto = await this.productoRepository
       .createQueryBuilder('producto')
@@ -269,10 +203,9 @@ export class ProductosService {
       .getOne();
 
     if (!producto)
-      throw new NotFoundException(
-        `Producto con ID ${id} no encontrado en el registro total`,
-      );
+      throw new NotFoundException(`Producto con ID ${id} no encontrado en el registro total`);
 
     return producto;
   }
 }
+
