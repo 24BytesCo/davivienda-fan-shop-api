@@ -8,13 +8,15 @@ import { JwtModule } from '@nestjs/jwt';
 import { FirstUserSeeder } from './providers/first-user.seeder';
 import { AdminGuard } from './guards/admin.guard';
 import { JwtGuard } from './guards/jwt.guard';
+import { UserOrAdminGuard } from './guards/user-or-admin.guard';
+import { JwtGuard } from './guards/jwt.guard';
 
 /**
  * Módulo de autenticación: controladores, servicios y configuración JWT.
  */
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, FirstUserSeeder, AdminGuard, JwtGuard],
+  providers: [AuthService, FirstUserSeeder, AdminGuard, JwtGuard, UserOrAdminGuard],
   imports: [
         // Acceso a variables de entorno
         ConfigModule,
@@ -30,6 +32,6 @@ import { JwtGuard } from './guards/jwt.guard';
         // Repositorio de la entidad User
         TypeOrmModule.forFeature([User]),
   ],
-  exports: [TypeOrmModule, JwtModule, AdminGuard, JwtGuard],
+  exports: [TypeOrmModule, JwtModule, AdminGuard, JwtGuard, UserOrAdminGuard],
 })
 export class AuthModule {}

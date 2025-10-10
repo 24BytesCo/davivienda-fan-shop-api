@@ -18,9 +18,11 @@ import { CreateProductoDto } from './dto/create-producto.dto';
 import { UpdateProductoDto } from './dto/update-producto.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiCreatedResponse, ApiExtraModels, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, getSchemaPath } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiCreatedResponse, ApiExtraModels, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, getSchemaPath, ApiBearerAuth } from '@nestjs/swagger';
 import { StandardResponseDto } from 'src/common/dtos/standard-response.dto';
 import { Producto } from './entities';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
+import { UseGuards } from '@nestjs/common';
 
 /**
  * Controlador de endpoints para gestión de productos.
@@ -33,8 +35,10 @@ export class ProductosController {
 
   /**
    * Crear producto con imágenes (multipart/form-data).
-   */
+  */
   @Post()
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FilesInterceptor('images'))
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear producto con imágenes' })
@@ -97,6 +101,8 @@ export class ProductosController {
    * @param {string} id - UUID del producto.
    */
   @Get('deleted/:id')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'UUID del producto', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   @ApiOperation({ summary: 'Obtener producto (incluidos eliminados) por ID' })
   @ApiOkResponse({
@@ -133,8 +139,10 @@ export class ProductosController {
    * Actualiza un producto por su ID.
    * @param {string} id - UUID del producto.
    * @param {UpdateProductoDto} updateProductoDto - DTO con datos a actualizar.
-   */
+  */
   @Patch(':id')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'UUID del producto', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   @ApiOperation({ summary: 'Actualizar un producto' })
   @ApiConsumes('multipart/form-data')
@@ -174,8 +182,10 @@ export class ProductosController {
 
   /**
    * Eliminación lógica de un producto por ID.
-   */
+  */
   @Delete(':id')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'UUID del producto', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   @ApiOperation({ summary: 'Eliminar lógicamente un producto' })
   @ApiOkResponse({
