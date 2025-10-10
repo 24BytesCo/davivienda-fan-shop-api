@@ -1,9 +1,10 @@
-import { Controller, Post, UploadedFiles, UseInterceptors, Body, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, UploadedFiles, UseInterceptors, Body, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { DeleteFileDto } from './dtos/delete-file.dto';
-import { ApiBody, ApiConsumes, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags, getSchemaPath, ApiExtraModels } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags, getSchemaPath, ApiExtraModels, ApiBearerAuth } from '@nestjs/swagger';
 import { StandardResponseDto } from 'src/common/dtos/standard-response.dto';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
 /**
  * Controlador para carga y borrado de archivos.
@@ -19,6 +20,8 @@ export class FilesController {
    * @param {Express.Multer.File[]} files - Archivos de imagen.
    */
   @Post('upload')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FilesInterceptor('files')) // 'files' es el `name` del campo en el form-data
   @ApiOperation({ summary: 'Subir múltiples archivos' })
   @ApiConsumes('multipart/form-data')
@@ -49,6 +52,8 @@ export class FilesController {
    * @param {DeleteFileDto} deleteFileDto - DTO con el arreglo de URLs a eliminar.
    */
   @Delete('delete-batch')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar archivos por URLs' })
   @ApiNoContentResponse({ description: 'Eliminación en lote realizada' })

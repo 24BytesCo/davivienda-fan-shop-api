@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfiguracionService } from './configuracion.service';
+import { AdminGuard } from 'src/auth/guards/admin.guard';
 
 /**
  * Endpoints para configurar la tasa de cambio.
@@ -19,6 +20,8 @@ export class ConfiguracionController {
 
   /** Actualiza la tasa de COP por punto. */
   @Put('tasa')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar tasa COP por punto' })
   setTasa(@Body() body: { valor: number }) {
     return this.service.setCopPorPunto(Number(body.valor));

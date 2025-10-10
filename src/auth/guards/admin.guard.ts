@@ -2,10 +2,17 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Unauthor
 import { JwtService } from '@nestjs/jwt';
 import { RolesUsuario } from '../enum/roles-usuario.enum';
 
+/**
+ * Guard que permite acceso únicamente a usuarios con rol administrador.
+ * Lee y valida el token Bearer, y verifica `payload.role`.
+ */
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
+  /**
+   * Permite la ejecución si el token es válido y el rol es ADMIN.
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
     const auth = (req.headers?.authorization ?? '') as string;
@@ -25,6 +32,7 @@ export class AdminGuard implements CanActivate {
     }
   }
 
+  /** Extrae el token de un header Authorization: Bearer <token>. */
   private extractBearer(header: string): string | null {
     const parts = header.split(' ');
     if (parts.length === 2 && /^Bearer$/i.test(parts[0])) return parts[1];
