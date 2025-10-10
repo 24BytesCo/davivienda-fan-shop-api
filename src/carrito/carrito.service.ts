@@ -45,7 +45,12 @@ export class CarritoService {
 
   /** Agrega un ítem, validando stock y cantidades. */
   async addItem({ userId, productoId, cantidad }: AddItemDto) {
-    if (cantidad <= 0) throw new BadRequestException('La cantidad debe ser positiva');
+    if (cantidad <= 0)
+      throw new BadRequestException({
+        message: 'La cantidad debe ser positiva',
+        code: 'CANTIDAD_INVALIDA',
+        data: { cantidad }
+      });
 
     const cart = await this.getOrCreateCart(userId);
     const producto = await this.productoRepo.findOne({ where: { id: productoId } });
@@ -56,7 +61,13 @@ export class CarritoService {
       .find((i) => i.producto.id === productoId);
 
     const requested = (item?.cantidad ?? 0) + cantidad;
-    if (requested > producto.stock) throw new BadRequestException('Stock insuficiente');
+    if (requested > producto.stock)
+      throw new BadRequestException({
+        message: `Stock insuficiente para ${producto.title}`,
+        code: 'STOCK_INSUFICIENTE',
+        detalle: `Disponible: ${producto.stock}, solicitado total: ${requested}`,
+        data: { disponible: producto.stock, solicitado: requested, enCarrito: item?.cantidad ?? 0 }
+      });
 
     if (!item) {
       item = this.itemRepo.create({ carrito: cart, producto, cantidad });
@@ -70,14 +81,25 @@ export class CarritoService {
 
   /** Actualiza la cantidad de un ítem específico. */
   async updateItem({ userId, productoId, cantidad }: UpdateItemDto) {
-    if (cantidad <= 0) throw new BadRequestException('La cantidad debe ser positiva');
+    if (cantidad <= 0)
+      throw new BadRequestException({
+        message: 'La cantidad debe ser positiva',
+        code: 'CANTIDAD_INVALIDA',
+        data: { cantidad }
+      });
     const cart = await this.getOrCreateCart(userId);
 
     const item = (await this.itemRepo.find({ where: { carrito: { id: cart.id } }, relations: { producto: true, carrito: true } }))
       .find((i) => i.producto.id === productoId);
     if (!item) throw new NotFoundException('Ítem no encontrado en el carrito');
 
-    if (cantidad > item.producto.stock) throw new BadRequestException('Stock insuficiente');
+    if (cantidad > item.producto.stock)
+      throw new BadRequestException({
+        message: `Stock insuficiente para ${item.producto.title}`,
+        code: 'STOCK_INSUFICIENTE',
+        detalle: `Disponible: ${item.producto.stock}, solicitado: ${cantidad}`,
+        data: { disponible: item.producto.stock, solicitado: cantidad }
+      });
     item.cantidad = cantidad;
     await this.itemRepo.save(item);
     return this.getCart(userId);
