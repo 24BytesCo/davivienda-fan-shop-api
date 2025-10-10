@@ -1,21 +1,16 @@
-﻿<p align="center">
+<p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-
-
 ## Davivienda Fan Shop API
 
-API de comercio en NestJS para canje de productos por puntos o dinero, con:
-- AutenticaciÃ³n JWT y semilla de primer usuario opcional
-- Productos con imÃ¡genes en Firebase Storage (multipart/form-data)
-- Carrito con validaciones de stock
-- Ã“rdenes con checkout por puntos o por dinero
+API en NestJS para canje de productos por puntos o dinero.
+- Autenticación JWT y semilla del primer usuario (opcional)
+- Productos con imágenes (Firebase Storage, multipart/form-data)
+- Carrito con validación de stock
+- Órdenes: pago con puntos o dinero, confirmación y limpieza de carrito
 - PostgreSQL + TypeORM
-- Swagger disponible bajo `/api`
+- Swagger disponible en `/api`
 
 ---
 
@@ -23,7 +18,7 @@ API de comercio en NestJS para canje de productos por puntos o dinero, con:
 - Docker y Docker Compose (recomendado)
 - Alternativa local: Node.js >= 18 y Yarn/NPM
 
-### Inicio rÃ¡pido (Docker)
+### Inicio rápido (Docker)
 1) Clonar y entrar al proyecto
 ```
 git clone https://github.com/24BytesCo/davivienda-fan-shop-api.git
@@ -32,32 +27,24 @@ cd davivienda-fan-shop-api
 
 2) Variables de entorno
 - Copia `.env.template` a `.env` y ajusta valores.
-- `ENV=development` activa `synchronize` en TypeORM. Usa `production` en despliegue.
+- `ENV=development` activa `synchronize` en TypeORM (solo desarrollo). Usa `production` en despliegue.
 
-3) Firebase (obligatorio para subir imÃ¡genes)
+3) Firebase (obligatorio para subir imágenes)
 - Descarga una clave de cuenta de servicio (JSON) de tu proyecto Firebase.
-- Guarda el archivo como `firebase-credentials.json` en la raÃ­z del proyecto.
-- En Docker, el archivo se monta dentro del contenedor donde el cÃ³digo compilado lo espera (`/app/dist/firebase-credentials.json`).
+- Guárdala como `firebase-credentials.json` en la raíz del proyecto.
+- En Docker, se monta dentro del contenedor en `/app/dist/firebase-credentials.json` (la ruta que el código compilado espera).
 
 4) Levantar todo (API + DB)
 ```
 docker compose up -d
 ```
-- La API queda disponible en `http://localhost:3000/api` (si `3000` estÃ¡ ocupado, define `API_PORT=3001` en tu `.env`).
+- API: `http://localhost:3000/api` (si `3000` está ocupado, define `API_PORT=3001` en tu `.env`).
 - Swagger: `http://localhost:3000/api`
-
-5) Logs y mantenimiento
-```
-docker compose logs -f api
-docker compose restart api
-docker compose down           # apaga
-docker compose down -v        # apaga y borra datos de DB
-```
 
 ### Usar la imagen publicada (sin compilar)
 Repositorio: `24bytes/davivienda-fan-shop-api:1.0.1` (o `latest`)
 
-Compose mÃ­nimo para consumidores (crea un archivo `docker-compose.yaml` aparte):
+Compose mínimo para consumidores (crear `docker-compose.yaml`):
 ```yaml
 services:
   api:
@@ -115,23 +102,20 @@ FIREBASE_STORAGE_BUCKET=tu-bucket.appspot.com
 
 ---
 
-### Arquitectura y mÃ³dulos
-- `AuthModule`
-  - Registro y login de usuarios via JWT.
-  - Seeder de primer usuario al arranque si no hay registros (lee variables `ADMIN_*`).
-- `ProductosModule`
-  - CRUD de productos con soporte de imÃ¡genes.
-- `FilesModule`
-  - Upload y borrado de archivos en Firebase Storage.
-- `CommonModule`
-  - Interceptor de respuesta estÃ¡ndar y filtro global de excepciones.
-
-Prefijo global de rutas: definido en `main.ts` como `api`.
+### Arquitectura y módulos
+- `AuthModule`: registro/login, emisión de JWT y seeder inicial (ADMIN) si no hay usuarios.
+- `ProductosModule`: CRUD con imágenes (Firebase).
+- `FilesModule`: subida/borrado de archivos.
+- `CarritoModule`: gestión del carrito por usuario.
+- `OrdenesModule`: checkout, confirmación de pago y consulta de órdenes.
+- `ConfiguracionModule`: tasa COP por punto.
+- `PuntosModule`: saldo, movimientos y ajustes de puntos.
+- `CommonModule`: interceptor de respuesta estándar y filtro global de excepciones.
 
 ---
 
-### EstÃ¡ndar de respuesta y manejo de errores
-- Interceptor global: transforma toda respuesta a:
+### Estándar de respuesta y errores
+- Respuesta estándar:
 ```
 {
   "statusCode": number,
@@ -140,196 +124,91 @@ Prefijo global de rutas: definido en `main.ts` como `api`.
   "data": any | null
 }
 ```
-- Filtro global de excepciones:
-  - Estructura similar con `ok=false` y `message` descriptivo.
-  - Mapea errores de PostgreSQL comunes (p. ej., `23505` conflicto).
-
-Notas de validaciÃ³n de stock y puntos:
-- El carrito valida cantidades contra el stock actual al agregar/editar.
-- En checkout con PUNTOS, se descuenta saldo y stock de forma atÃ³mica dentro de una transacciÃ³n; si algo falla no se crea la orden.
-- En checkout con DINERO, la orden queda `PENDIENTE` y el stock se descuenta al confirmar pago (`confirmar-pago`).
+- Errores de negocio incluyen `code` y `detalle` cuando aplica.
+  - `STOCK_INSUFICIENTE`, `SALDO_INSUFICIENTE`, `CANTIDAD_INVALIDA`.
 
 ---
 
-### AutenticaciÃ³n (Auth)
-Rutas bajo `/api/auth`.
-
-- Registro (pÃºblico)
-  - `POST /api/auth/register`
-  - Body mÃ­nimo:
-    ```json
-    {
-      "email": "usuario@example.com",
-      "password": "GatoVerde#2025",
-      "fullName": "Nombre Apellido"
-    }
-    ```
-  - PolÃ­tica de contraseÃ±a: mÃ­nimo 12 caracteres, mayÃºscula, minÃºscula, dÃ­gito, carÃ¡cter especial y sin espacios.
-  - AsignaciÃ³n de rol: si no hay creador autenticado, se asigna rol `usuario`.
-  - Nota: opcionalmente acepta `role` y `creatorRole` (interno). Reglas:
-    - Sin `creatorRole` â†’ siempre `usuario`.
-    - `creatorRole=administrador` â†’ puede crear `administrador` | `editor` | `usuario`.
-    - `creatorRole=editor` â†’ solo puede crear `usuario`.
-
-- Login
-  - `POST /api/auth/login`
-  - Body:
-    ```json
-    {
-      "email": "usuario@example.com",
-      "password": "GatoVerde#2025"
-    }
-    ```
-  - Respuesta: `{ user: { ...sin password }, token: "<jwt>" }` envuelta por el interceptor estÃ¡ndar.
-
-- JWT
-  - Configurado con `JWT_SECRET` y `JWT_EXPIRES_IN` (por `.env`).
-
-- Usuario inicial al arranque (semilla)
-  - Se ejecuta una Ãºnica vez si la tabla `users` estÃ¡ vacÃ­a.
-  - Variables requeridas: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FULLNAME`.
-  - Rol opcional por `ADMIN_ROLE` (o `ADMIN_ROLES`): `administrador` | `editor` | `usuario` (por defecto `administrador`).
+### Autenticación (Auth) — `/api/auth`
+- Registrar usuario: `POST /auth/register`
+- Login: `POST /auth/login` → `{ user, token }`
+- Listar usuarios activos (solo admin): `GET /auth/users` (Bearer)
 
 ---
 
-### Productos
-Rutas bajo `/api/productos`.
-
-- Crear producto con imÃ¡genes
-  - `POST /api/productos`
-  - `multipart/form-data` con campo `images` (mÃºltiples archivos) y campos del DTO de producto.
-  - Sube imÃ¡genes a Firebase Storage y guarda URLs.
-  - Campo `sizes` acepta arreglo real (`["M","L"]`), JSON como string (`"[\"M\",\"L\"]"`) o cadena separada por comas (`"M,L"`).
-
-- Listar productos
-  - `GET /api/productos`
-
-- Buscar por tÃ©rmino (ID/slug/tÃ­tulo)
-  - `GET /api/productos/:termino`
-
-- Obtener por ID incluyendo eliminados lÃ³gicos
-  - `GET /api/productos/deleted/:id`
-
-- Actualizar
-  - `PATCH /api/productos/:id`
-  - `multipart/form-data` con `images` para reemplazar imÃ¡genes. Si no se envÃ­an archivos, se conservan las existentes. TambiÃ©n puedes pasar `images` como arreglo de URLs en el body para reasignar.
-
-- Borrado lÃ³gico
-  - `DELETE /api/productos/:id`
-
-Notas:
-- El propietario (`owner`) del producto es opcional actualmente (se permite nulo) para compatibilidad con datos existentes.
+### Productos — `/api/productos`
+- Crear (admin): `POST /productos` (multipart/form-data, campo `images`)
+- Listar: `GET /productos`
+- Buscar por término (id/slug/título): `GET /productos/:termino`
+- Obtener con eliminados (admin): `GET /productos/deleted/:id`
+- Actualizar (admin): `PATCH /productos/:id` (multipart)
+- Borrado lógico (admin): `DELETE /productos/:id`
+- Campo `sizes` acepta arreglo real, JSON string o CSV (`"M,L"`).
 
 ---
 
-### Archivos (Firebase Storage)
-Rutas bajo `/api/files`.
-
-- Subir mÃºltiples
-  - `POST /api/files/upload`
-  - `multipart/form-data` con campo `files`.
-
-- Borrar en lote por URLs
-  - `DELETE /api/files/delete-batch`
-  - Body:
-    ```json
-    { "urls": ["https://storage.googleapis.com/BUCKET/archivo1.png"] }
-    ```
-
-Requisitos:
-- `FIREBASE_STORAGE_BUCKET` en `.env`.
-- `firebase-credentials.json` vÃ¡lido (cuenta de servicio) en la raÃ­z del proyecto.
-- En Docker, monta ese archivo dentro del contenedor en `/app/dist/firebase-credentials.json`.
+### Archivos (Firebase Storage) — `/api/files`
+- Subir múltiples (admin): `POST /files/upload` (multipart, campo `files`)
+- Borrar en lote (admin): `DELETE /files/delete-batch` body `{ urls: string[] }`
 
 ---
 
-### Puntos
-Rutas bajo `/api/puntos`.
+### Carrito — `/api/carrito` (Bearer propio o admin)
+- Obtener carrito: `GET /carrito/:userId`
+- Agregar ítem: `POST /carrito/items` body `{ userId, productoId, cantidad }`
+- Actualizar cantidad: `PATCH /carrito/items` body `{ userId, productoId, cantidad }`
+- Eliminar ítem: `DELETE /carrito/items/:userId/:productoId`
+- Limpiar: `DELETE /carrito/:userId`
 
-- Consultar saldo
-  - `GET /api/puntos/:userId`
-  - Respuesta: `{ userId, saldo }`
+---
 
-- Listar movimientos (recientes primero)
-  - `GET /api/puntos/:userId/movimientos?limit=&offset=`
+### Puntos — `/api/puntos`
+- Saldo (propio o admin): `GET /puntos/:userId`
+- Movimientos (propio o admin): `GET /puntos/:userId/movimientos`
+- Acreditar (admin): `POST /puntos/:userId/credit` body `{ cantidad, concepto?, ordenId? }`
+- Debitar (admin): `POST /puntos/:userId/debit` body `{ cantidad, concepto?, ordenId? }`
 
-- Acreditar puntos
-  - `POST /api/puntos/:userId/credit`
-  - Body: `{ cantidad: number (>0), concepto?: string, ordenId?: uuid }`
+---
 
-- Debitar puntos
-  - `POST /api/puntos/:userId/debit`
-  - Body: `{ cantidad: number (>0), concepto?: string, ordenId?: uuid }`
-
-Validaciones y atomicidad:
-- Crea el saldo si no existe y ajusta usando increment/decrement atómicos.
-- Al debitar valida `saldo >= cantidad`; si no, 400 con `code: SALDO_INSUFICIENTE`.
-
+### Órdenes — `/api/ordenes`
+- Checkout (propio o admin): `POST /ordenes/checkout/:userId` body `{ modoPago: "PUNTOS" | "DINERO" }`
+  - PUNTOS: orden `PAGADA`, descuenta saldo y stock, limpia carrito.
+  - DINERO: orden `PENDIENTE`, calcula `totalCop`.
+- Confirmar pago (admin): `POST /ordenes/:id/confirmar-pago` → descuenta stock y marca `PAGADA`.
+- Mis órdenes (Bearer): `GET /ordenes/mis-ordenes`
+- Órdenes por usuario (propio o admin): `GET /ordenes/usuario/:userId`
 
 ---
 
 ### Variables de entorno
-Relevantes para la app:
-- Base de datos: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-- Entorno: `ENV`
-- Puerto de la API (host): `API_PORT` (solo para mapeo de puertos en Docker Compose)
+- DB: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- App: `ENV`, `API_PORT`
 - JWT: `JWT_SECRET`, `JWT_EXPIRES_IN`
 - Firebase: `FIREBASE_STORAGE_BUCKET`
-- Semilla de usuario: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FULLNAME`, `ADMIN_ROLE`/`ADMIN_ROLES`
-
-Ejecuta `docker-compose up -d` para levantar PostgreSQL con los valores de `.env`.
+- Semilla inicial: `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FULLNAME`, `ADMIN_ROLE`
 
 ---
 
-### Comandos Ãºtiles
+### Solución de problemas
+- Postgres: "Database is uninitialized and superuser password is not specified"
+  - Completa `DB_USER`, `DB_PASSWORD`, `DB_NAME` en `.env` y reinicia. Si ya se creó `./postgres` sin password, bórrala y levanta de nuevo.
+- Puerto 3000 ocupado
+  - Cambia `API_PORT` en `.env` (ej. `API_PORT=3001`) y `docker compose up -d`.
+- Firebase credenciales
+  - Asegura `firebase-credentials.json` en la raíz y que el compose lo monte en `/app/dist/firebase-credentials.json`.
+
+---
+
+### Comandos útiles
 - Desarrollo: `yarn start:dev`
-- ProducciÃ³n (build + run): `yarn build && yarn start:prod`
+- Producción: `yarn build && yarn start:prod`
 - Lint: `yarn lint`
 - Test: `yarn test`
 
 ---
 
-### Notas
-- Todas las rutas van bajo `/api` por el prefijo global en `main.ts`.
-- Las respuestas usan un formato estÃ¡ndar y los errores se normalizan vÃ­a el filtro global.
-- Para producciÃ³n: deshabilitar `synchronize` y usar migraciones.
-
----
-
-### Pago y Ã³rdenes (resumen rÃ¡pido)
-- Pagar con puntos (inmediato):
-  - `POST /api/ordenes/checkout/:userId` con `{ "modoPago": "PUNTOS" }`
-  - Crea orden `PAGADA`, descuenta puntos y stock y limpia el carrito.
-- Pagar con dinero (dos pasos):
-  - `POST /api/ordenes/checkout/:userId` con `{ "modoPago": "DINERO" }` â†’ crea orden `PENDIENTE` y calcula `totalCop`.
-  - `POST /api/ordenes/:id/confirmar-pago` â†’ valida stock y marca `PAGADA` descontando stock y limpiando carrito.
-
-- Mis órdenes (con token):
-  - `GET /api/ordenes/mis-ordenes` con `Authorization: Bearer <token>`.
-  - Usa el `sub` del JWT para devolver solo las órdenes del usuario autenticado.
-
-Errores de negocio (códigos)
-- `STOCK_INSUFICIENTE`: cuando el stock no alcanza (en carrito o checkout). Incluye `disponible` y `solicitado`.
-- `CANTIDAD_INVALIDA`: cuando la cantidad enviada es <= 0.
-- `SALDO_INSUFICIENTE`: al pagar con puntos sin saldo suficiente. Incluye `requerido`.
-
----
-
-### Autorización y administración
-- Autenticación JWT: `POST /api/auth/login` → usa “Authorize” en Swagger (Bearer).
-- Listar usuarios activos (solo admin):
-  - `GET /api/auth/users` con `Authorization: Bearer <token_admin>`.
-  - Protegido por guard de rol administrador.
-
----
-
-### Solución de problemas comunes
-- Postgres: “Database is uninitialized and superuser password is not specified”
-  - Asegura `DB_USER`, `DB_PASSWORD`, `DB_NAME` en `.env`.
-  - Si se inicializó sin password, borra la carpeta `./postgres` y levanta de nuevo.
-- Puerto 3000 ocupado
-  - Cambia `API_PORT` en `.env` (ej. `API_PORT=3001`) y recrea.
-- Firebase credenciales
-  - Verifica que `firebase-credentials.json` exista en la raíz y que `FIREBASE_STORAGE_BUCKET` sea correcto.
-
+### Codificación y fin de línea
+Este repositorio está configurado para UTF-8 y LF.
+- `.editorconfig` y `.gitattributes` ya incluidos.
+- Si ves caracteres extraños en Windows, configura tu editor a UTF-8 y, en PowerShell, usa `chcp 65001` antes de editar.
 

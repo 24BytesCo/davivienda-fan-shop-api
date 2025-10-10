@@ -61,3 +61,4 @@ export class FilesController {
     return this.filesService.deleteFiles(deleteFileDto.urls);
   }
 }
+

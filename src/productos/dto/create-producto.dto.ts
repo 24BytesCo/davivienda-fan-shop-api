@@ -111,3 +111,4 @@ export class CreateProductoDto {
   @IsOptional()
   images?: string[];
 }
+

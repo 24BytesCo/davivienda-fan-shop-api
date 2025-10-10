@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pruebas unitarias de OrdenesService (checkout básico).
  */
 import { Test, TestingModule } from '@nestjs/testing';
